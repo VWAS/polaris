@@ -18,8 +18,7 @@
 
 
 
-If you're an app developer, Polaris is for you! Polaris is a safe, small, efficient and revolutionary file management system for iOS apps built in Objective-C. It has a wide variety and is maintained constantly with the latest technologies for your app.
-
+If you're an app developer, Polaris is for you! Polaris is a collection of usefull class extensions and file managment APIs built in Objective-C. It has a wide variety and is maintained constantly with the latest technologies for your app.
 
 
 -----
@@ -29,6 +28,30 @@ If you're an app developer, Polaris is for you! Polaris is a safe, small, effici
 ## Features
 
 
+
+### Thumbnail Manager
+
+- High-Level API to generate a thumbnail for a PDF file
+
+- Highly optimized API for returning thumbnails (UIImage) just by passing a file path
+
+
+
+### NSUserDefaults + Additons
+
+- save NSDictionary to NSUserDefaults 
+
+- save UIColor objects to NSUserDefaults
+
+- save UIFonts to NSUserDefaults
+
+
+### UIColor + HEXString
+
+- Generates Hex-code from an UIColor object
+
+
+###Polaris itself
 
 - easy project managing system for iOS
 
@@ -44,9 +67,8 @@ If you're an app developer, Polaris is for you! Polaris is a safe, small, effici
 
 - very efficient
 
-- add VWAS-HTML 3.0 projects support for your apps.
+- add VWAS-HTML 3.0 (Codinator) projects support for your apps.
 
-- Built with App Thinning in mind.
 
 
 
@@ -64,9 +86,19 @@ Polaris is an API and framework made and compiled by Vladmir Danila of VWAS Stud
 
 Many thanks to [swisspol](https://github.com/swisspol) for the server related [API](https://github.com/swisspol/GCDWebServer).
 
+Many thanks to [RNCryptor](https://github.com/RNCryptor) for the encryption related [API](https://github.com/RNCryptor/RNCryptor).
+
+
 
 
 -----
+
+
+## Coming Soon
+
+
+- Neuron (Closed Source Framework). You will find out lata this year what exactly that is! We can say tough: It will revolutionize some stuff
+
 
 
 
