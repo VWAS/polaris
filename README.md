@@ -93,15 +93,6 @@ Many thanks to [RNCryptor](https://github.com/RNCryptor) for the encryption rela
 
 -----
 
-
-## Coming Soon
-
-
-- Neuron (Closed Source Framework). You will find out later this year what exactly that is! We can say tough: It will revolutionize some stuff
-
-
-
-
 ## Learn More
 
 
