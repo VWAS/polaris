@@ -35,33 +35,25 @@
 - (UIImage *)thumbnailForFileAtPath:(NSString *)filePath{
 
     
-    NSString *imageName = filePath.pathExtension;
+    NSString *filename = filePath.lastPathComponent;
+    
+    if ([filename.pathExtension isEqualToString:@"icloud"]) {
+        filename = filePath.stringByDeletingPathExtension;
+    }
+    
+    NSString *imageName = filename.pathExtension;
     
     
-    ///if is dir
+    
+    //if is dir
     if ([self isFileAtPathDir:filePath]){
     
-        
-        //if is Playground
-        if ([imageName isEqualToString:@"cnPlay"]) {
-            
-            
-            if (!self.playGroundImageImage) {
-                self.playGroundImageImage = [UIImage imageNamed:@"CnPlaygroundProj"];
-            }
-
-            return self.playGroundImageImage;
-
-        //is normal dir
+    
+        if (!self.dirImage) {
+            self.dirImage = [UIImage imageNamed:@"dir"];
         }
-        else {
             
-            if (!self.dirImage) {
-                self.dirImage = [UIImage imageNamed:@"dir"];
-            }
-            
-            return self.dirImage;
-        }
+        return self.dirImage;
     }
     
     //Isn't a dir so continue checking
@@ -167,7 +159,18 @@
         
         return self.zipImage;
     }
-    
+    //if is Playground
+    else if ([imageName isEqualToString:@"cnPlay"]) {
+        
+        
+        if (!self.playGroundImageImage) {
+            self.playGroundImageImage = [UIImage imageNamed:@"CnPlaygroundProj"];
+        }
+        
+        return self.playGroundImageImage;
+        
+        //is normal dir
+    }
     //ELSE
     else{
         

@@ -32,7 +32,7 @@
 // WebDAV specifications: http://webdav.org/specs/rfc4918.html
 
 // Requires "HEADER_SEARCH_PATHS = $(SDKROOT)/usr/include/libxml2" in Xcode build settings
-#import <libxml2/libxml/parser.h>
+#import <libxml/parser.h>
 
 #import "GCDWebDAVServer.h"
 
@@ -261,7 +261,7 @@ static inline BOOL _IsMacFinder(GCDWebServerRequest* request) {
   if ((dstRelativePath == nil) || (range.location == NSNotFound)) {
     return [GCDWebServerErrorResponse responseWithClientError:kGCDWebServerHTTPStatusCode_BadRequest message:@"Malformed 'Destination' header: %@", dstRelativePath];
   }
-  dstRelativePath = [[dstRelativePath substringFromIndex:(range.location + range.length)] stringByRemovingPercentEncoding];
+  dstRelativePath = [[dstRelativePath substringFromIndex:(range.location + range.length)] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
   NSString* dstAbsolutePath = [_uploadDirectory stringByAppendingPathComponent:dstRelativePath];
   if (![self _checkSandboxedPath:dstAbsolutePath]) {
     return [GCDWebServerErrorResponse responseWithClientError:kGCDWebServerHTTPStatusCode_NotFound message:@"\"%@\" does not exist", srcRelativePath];
@@ -564,6 +564,7 @@ static inline xmlNodePtr _XMLChildWithName(xmlNodePtr child, const xmlChar* name
   [xmlString appendString:@"</D:activelock>\n</D:lockdiscovery>\n"];
   [xmlString appendString:@"</D:prop>"];
   
+  [self logVerbose:@"WebDAV pretending to lock \"%@\"", relativePath];
   GCDWebServerDataResponse* response = [GCDWebServerDataResponse responseWithData:[xmlString dataUsingEncoding:NSUTF8StringEncoding]
                                                                       contentType:@"application/xml; charset=\"utf-8\""];
   return response;
@@ -591,6 +592,7 @@ static inline xmlNodePtr _XMLChildWithName(xmlNodePtr child, const xmlChar* name
     return [GCDWebServerErrorResponse responseWithClientError:kGCDWebServerHTTPStatusCode_Forbidden message:@"Unlocking item name \"%@\" is not allowed", itemName];
   }
   
+  [self logVerbose:@"WebDAV pretending to unlock \"%@\"", relativePath];
   return [GCDWebServerResponse responseWithStatusCode:kGCDWebServerHTTPStatusCode_NoContent];
 }
 

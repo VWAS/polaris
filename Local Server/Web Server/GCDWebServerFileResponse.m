@@ -116,6 +116,7 @@ static inline NSDate* _NSDateFromTimeSpec(const struct timespec* t) {
     if (hasByteRange) {
       [self setStatusCode:kGCDWebServerHTTPStatusCode_PartialContent];
       [self setValue:[NSString stringWithFormat:@"bytes %lu-%lu/%lu", (unsigned long)_offset, (unsigned long)(_offset + _size - 1), (unsigned long)fileSize] forAdditionalHeader:@"Content-Range"];
+      GWS_LOG_DEBUG(@"Using content bytes range [%lu-%lu] for file \"%@\"", (unsigned long)_offset, (unsigned long)(_offset + _size - 1), path);
     }
     
     if (attachment) {

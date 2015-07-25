@@ -500,7 +500,15 @@ extern NSString* const GCDWebServerAuthenticationMethod_DigestAccess;
  *  settings to the name of a custom header file (escaped like \"MyLogging.h\").
  *  This header file must define the following set of macros:
  *
+ *    GWS_LOG_DEBUG(...)
+ *    GWS_LOG_VERBOSE(...)
+ *    GWS_LOG_INFO(...)
+ *    GWS_LOG_WARNING(...)
+ *    GWS_LOG_ERROR(...)
+ *    GWS_LOG_EXCEPTION(__EXCEPTION__)
  *
+ *  IMPORTANT: Except for GWS_LOG_EXCEPTION() which gets passed an NSException,
+ *  these macros must behave like NSLog(). Furthermore the GWS_LOG_DEBUG() macro
  *  should not do anything unless the preprocessor constant "DEBUG" evaluates to
  *  non-zero.
  *
@@ -526,6 +534,10 @@ extern NSString* const GCDWebServerAuthenticationMethod_DigestAccess;
  */
 + (void)setLogLevel:(int)level;
 
+/**
+ *  Logs a message to the logging facility at the VERBOSE level.
+ */
+- (void)logVerbose:(NSString*)format, ... NS_FORMAT_FUNCTION(1,2);
 
 /**
  *  Logs a message to the logging facility at the INFO level.

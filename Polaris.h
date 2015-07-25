@@ -49,6 +49,19 @@
 - (instancetype)initWithProjectCreatorAtPath:(NSString *)path withName:(NSString *)name andExtension:(NSString *)extension;
 
 /**
+ * @brief The initializer for creating the required project files.
+ * @discussion This initializer is for creating all required project files at an already existing location.
+ * @param path Path of the directory where all reqired files will be injected.
+ * @warning Do not use this for initializing a project or when initWithProjectCreatorAtPath: could be used!
+ * @code
+ * GoldProjectManager *projectManager = [[GoldProjectManager alloc] createProjectRequiredFilesAtPath:(NSString *)path];
+ * @endcode
+ * @since 1.1
+ */
+- (instancetype)initWithCreatingProjectRequiredFilesAtPath:(NSString *)path;
+
+
+/**
  * @brief The default initializer.
  * @discussion This is the default initializer.
  * @param path The path of the project with that you want to initialize Polaris
@@ -62,6 +75,7 @@
  * @since 0.4
  */
 - (instancetype)initWithProjectPath:(NSString *)path andWithWebServer:(BOOL)useWebServer UploadServer:(BOOL)useUploadServer andWebDavServer:(BOOL)useWebDavServer;
+
 
 /**
  * @brief Call this when a project is closed.
@@ -184,6 +198,25 @@
  * @sice 1.0
  */
 - (void)archiveWorkingCopyWithCommitMessge:(NSString *)message;
+
+
+/**
+ * @brief Deletes the backup in the version dictionary
+ * @discussion This method deletes the automaticly taken backup every 10 min
+ * @since 1.2
+ */
+- (void)deleteBackup;
+
+/**
+ * Returns YES if a backup exists.
+ */
+- (BOOL)checkIfBackupExists;
+
+/**
+ * Set this to YES to pause creating a backup every 10 minuets.
+ */
+@property BOOL pauseAutobackup;
+
 
 #pragma mark - server
 

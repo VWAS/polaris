@@ -50,10 +50,12 @@
     
     Polaris *projectManager;
     
+    NSTimer *autoBackup;
     
     BOOL initWithProjectCreator;
     BOOL needClose;
     BOOL failed;
+    
 }
 
 @end
@@ -65,11 +67,15 @@
 
 
 +(id)alloc{
-    NSLog(@"[Polaris] Version 1.1 || © 2015 VWAS-Studios & Vladimir Danila\nFollow us on Twitter: @VWASStudios || @DanilaVladi and stay up to date!  \n\n");
+    #ifdef DEBUG
+    NSLog(@"[Polaris] Version 1.2 || © 2015 VWAS-Studios & Vladimir Danila\nFollow us on Twitter: @VWASStudios || @DanilaVladi and stay up to date!");
+    #endif
     return [super alloc];
 }
 +(id)init{
+    #ifdef DEBUG
     NSLog(@"Wrong initializer. <Use initWithProjectPath or initWithNewProject instead>");
+    #endif
     return [super init];
 }
 
@@ -100,7 +106,9 @@
         
         
         if (error) {
-            NSLog(@"\n\n\n\n\n\n[Polaris] ERROR: Faild to create a new Project. Please double check if the path exists.\nDescription: %@\n\n\n\n\n\n",[error localizedDescription]);
+            #ifdef DEBUG
+            NSLog(@"[Polaris] ERROR: Faild to create a new Project. Please double check if the path exists.\nDescription: %@",[error localizedDescription]);
+            #endif
         }
         
     }
@@ -108,6 +116,36 @@
     return self;
 }
 
+
+- (instancetype)initWithCreatingProjectRequiredFilesAtPath:(NSString *)path{
+    self = [super init];
+    //create project structure
+    
+    if (self) {
+        
+        initWithProjectCreator = true;
+        
+        projectPath = path;
+        
+        
+        NSError *error;
+        
+        [[NSFileManager defaultManager] createDirectoryAtPath:[self projectVersionsPath] withIntermediateDirectories:YES attributes:nil error:&error];
+        [[NSFileManager defaultManager] createDirectoryAtPath:[self projectUserDirectoryPath] withIntermediateDirectories:YES attributes:nil error:&error];
+        [[NSFileManager defaultManager] createDirectoryAtPath:[self projectTempPath] withIntermediateDirectories:YES attributes:nil error:&error];
+        [[NSFileManager defaultManager] createDirectoryAtPath:[self projectSettingsPath] withIntermediateDirectories:YES attributes:nil error:&error];
+        
+        
+        if (error) {
+            #ifdef DEBUG
+            NSLog(@"[Polaris] ERROR: Faild to create a new Project. Please double check if the path exists.\nDescription: %@",[error localizedDescription]);
+            #endif
+        }
+        
+    }
+    
+    return self;
+}
 
 
 
@@ -123,7 +161,9 @@
         if (useWebServer || useUploadServer || useWebDavServer) {
             [self startServerForWeb:useWebServer forUploading:useUploadServer forWebDav:useWebDavServer];
         }
-        
+      
+        [self autoBackup];
+        autoBackup = [NSTimer scheduledTimerWithTimeInterval: 520.0 target: self selector:@selector(autoBackup) userInfo: nil repeats:YES];
     }
     
     return self;
@@ -131,6 +171,10 @@
 
 
 - (void)close{
+    
+    [autoBackup invalidate];
+    [self deleteBackup];
+    
         if (_webServer.isRunning) {
             [_webServer stop];
         }
@@ -160,7 +204,7 @@
 
     }
     else{
-        NSLog(@"\n\n\n\n\n\n[Polaris] ERROR: Wrong initializer.\n\n\n\n\n\n");
+        NSLog(@"[Polaris] ERROR: Wrong initializer.");
         return nil;
     }
 }
@@ -171,7 +215,9 @@
         return [selectedFilePath stringByReplacingOccurrencesOfString:[NSString stringWithFormat:@"%@/",[self projectUserDirectoryPath]] withString:@""];
     }
     else{
-        NSLog(@"\n\n\n\n\n\n[Polaris] ERROR: Wrong initializer.\n\n\n\n\n\n");
+        #ifdef DEBUG
+        NSLog(@"[Polaris] ERROR: Wrong initializer.");
+        #endif
         return nil;
     }
 }
@@ -179,11 +225,18 @@
 - (NSMutableArray *)contentsOfCurrentDirectory{
     if (!initWithProjectCreator) {
         
-        return [[[NSFileManager defaultManager] contentsOfDirectoryAtPath:inspectorPath error:nil] mutableCopy];
+        NSURL *url = [NSURL fileURLWithPath:inspectorPath isDirectory:YES];
+        NSArray *items = [[NSFileManager defaultManager] contentsOfDirectoryAtURL:url includingPropertiesForKeys:[NSArray arrayWithObject:NSURLNameKey] options:NSDirectoryEnumerationSkipsHiddenFiles error:nil];
+        
+        return [items mutableCopy];
+        
+        //return [[[NSFileManager defaultManager] contentsOfDirectoryAtPath:inspectorPath error:nil] mutableCopy];
     
     }
     else{
-        NSLog(@"\n\n\n\n\n\n[Polaris] ERROR: Wrong initializer.\n\n\n\n\n\n");
+        #ifdef DEBUG
+        NSLog(@"[Polaris] ERROR: Wrong initializer.");
+        #endif
         return nil;
     }
 }
@@ -192,11 +245,16 @@
 - (NSMutableArray *)contentsOfDirectoryAtPath:(NSString *)path{
     if (!initWithProjectCreator) {
         
+        NSURL *url = [NSURL fileURLWithPath:path isDirectory:YES];
+        NSArray *items = [[NSFileManager defaultManager] contentsOfDirectoryAtURL:url includingPropertiesForKeys:[NSArray arrayWithObject:NSURLNameKey] options:NSDirectoryEnumerationSkipsHiddenFiles error:nil];
     
-    return [[[NSFileManager defaultManager] contentsOfDirectoryAtPath:path error:nil] mutableCopy];
+    return [items mutableCopy];
+    
     }
     else{
-        NSLog(@"\n\n\n\n\n\n[Polaris] ERROR: Wrong initializer.\n\n\n\n\n\n");
+        #ifdef DEBUG
+        NSLog(@"[Polaris] ERROR: Wrong initializer.");
+        #endif
         return nil;
     }
 }
@@ -205,50 +263,42 @@
 
 - (void)archiveWorkingCopyWithCommitMessge:(NSString *)message{
     
-    if (!initWithProjectCreator) {
-        
-    
-        NSString *version = [self privateProjectVersion];
-    
-        int newVersion = version.intValue + 1;
-        [self updateVersionNumberToVersion:newVersion];
-    
-    
-        NSString *destination = [NSString stringWithFormat:@"%@/Version%@",[self projectVersionsPath], version];
-    
-        NSError *error;
-        [[NSFileManager defaultManager] copyItemAtPath:[self projectUserDirectoryPath] toPath:destination error:&error];
-    
-        if (error) {
-            NSLog(@"\n\n\n\n\n\n[Polaris] ERROR: Failed to archive project. Details: %@\n\n\n\n\n\n",[error localizedDescription]);
-        }
-        else{
-            if ([message isEqualToString:@"Enter commit message here"]) {
-                message = @"";
-            }
-            
-            NSError *error2;
-            NSString *dataPath = [destination stringByAppendingPathComponent:@"data"];
-            
-            if (!message.length == 0) {
 
-                [message writeToFile:dataPath atomically:true encoding:NSUTF8StringEncoding error:&error2];
-        
-            if (error) {
-                        NSLog(@"\n\n\n\n\n\n[Polaris] ERROR: Failed to save the comment to the archive. Details: %@\n\n\n\n\n\n",[error2 localizedDescription]);
-                }
-                else{
-                    NSLog(@"\n\n\n\n\n\n[Polaris] Message: Project was archived.\n\n\n\n\n\n");
-                }
-            }
-            else{
-                NSLog(@"\n\n\n\n\n\n[Polaris] Message: Project was archived without a note.\n\n\n\n\n\n");
-            }
-        }
-    }
-
+    [self archiveWorkingCopyWithCommitMessge:message andTitle:nil];
     
 }
+
+
+
+
+- (void)deleteBackup{
+    
+    if ([self checkIfBackupExists]) {
+
+            
+        NSString *pathToDelete = [[self projectVersionsPath] stringByAppendingPathComponent:@"Autobackup"];
+        NSURL *url = [NSURL fileURLWithPath:pathToDelete isDirectory:YES];
+    
+        NSError *error;
+        [[NSFileManager alloc] removeItemAtURL:url error:&error];
+    
+        if (error) {
+            #ifdef DEBUG
+            NSLog(@"[Polaris] Error deleting backup");
+            #endif
+        }
+    
+    }
+}
+
+- (BOOL)checkIfBackupExists{
+
+    NSString *backupPath = [[self projectVersionsPath] stringByAppendingPathComponent:@"Autobackup"];
+    
+    BOOL fileExists = [[NSFileManager defaultManager] fileExistsAtPath:backupPath];
+    return fileExists;
+}
+
 
 
 #pragma mark - Server Stuff
@@ -258,7 +308,9 @@
         return [_webServer.serverURL absoluteString];
     }
     else{
-        NSLog(@"\n\n\n\n\n\n[Polaris] Warning: Wrong initializer\n\n\n\n\n\n");
+        #ifdef DEBUG
+        NSLog(@"[Polaris] Warning: Wrong initializer");
+        #endif
         return nil;
     }
 }
@@ -269,7 +321,9 @@
 
     }
     else{
-        NSLog(@"\n\n\n\n\n\n[Polaris] Warning: Wrong initializer\n\n\n\n\n\n");
+        #ifdef DEBUG
+        NSLog(@"[Polaris] Warning: Wrong initializer");
+        #endif
         return nil;
     }
 }
@@ -279,7 +333,9 @@
         return [_davServer.serverURL absoluteString];
     }
     else{
-        NSLog(@"\n\n\n\n\n\n[Polaris] Warning: Wrong initializer\n\n\n\n\n\n");
+        #ifdef DEBUG
+        NSLog(@"[Polaris] Warning: Wrong initializer");
+        #endif
         return nil;
     }
 }
@@ -317,14 +373,18 @@
     if (!initWithProjectCreator) {
         NSString *version = [NSString stringWithFormat:@"%@.0", [self getSettingsDataForKey:@"version"]];
         
+        #ifdef DEBUG
         if (version.length == 0) {
-            NSLog(@"\n\n\n\n\n\n[Polaris] Warning: There's no version saved. Save a version for key:'Version'\n\n\n\n\n\n");
+            NSLog(@"[Polaris] Warning: There's no version saved. Save a version for key:'Version'");
         }
+        #endif
         
         return version;
     }
     else{
-        NSLog(@"\n\n\n\n\n\n[Polaris] Warning: Wrong initializer\n\n\n\n\n\n");
+        #ifdef DEBUG
+        NSLog(@"[Polaris] Warning: Wrong initializer");
+        #endif
         return nil;
     }
 
@@ -337,7 +397,7 @@
 
     }
     else{
-        NSLog(@"\n\n\n\n\n\n[Polaris] Warning: Wrong initializer\n\n\n\n\n\n");
+        NSLog(@"[Polaris] Warning: Wrong initializer");
         return nil;
     }
 
@@ -352,11 +412,13 @@
             return nil;
         }
         else{
-        return [self getSettingsDataForKey:@"gistID"];
+            return [self getSettingsDataForKey:@"gistID"];
         }
     }
     else{
-        NSLog(@"\n\n\n\n\n\n[Polaris] Warning: Wrong initializer\n\n\n\n\n\n");
+        #ifdef DEBUG
+        NSLog(@"[Polaris] Warning: Wrong initializer");
+        #endif
         return nil;
     }
 
@@ -374,7 +436,9 @@
         [self updateSettingsValueForKey:@"gistID" withValue:gistID];
     }
     else{
-        NSLog(@"\n\n\n\n\n\n[Polaris] Warning: Wrong initializer\n\n\n\n\n\n");
+        #ifdef DEBUG
+        NSLog(@"[Polaris] Warning: Wrong initializer");
+        #endif
     }
 }
 
@@ -385,7 +449,9 @@
         [self updateSettingsValueForKey:@"version" withValue:[NSString stringWithFormat:@"%i",versionNumber]];
     }
     else{
-        NSLog(@"\n\n\n\n\n\n[Polaris] Warning: Wrong initializer\n\n\n\n\n\n");
+        #ifdef DEBUG
+        NSLog(@"[Polaris] Warning: Wrong initializer");
+        #endif
     }
 }
 
@@ -414,9 +480,11 @@
     NSDictionary *dict = [self getProjectSettingsDictionary];
     NSString *string = [self decryptedData:[dict valueForKey:key] forKey:key];
     
+    #ifdef DEBUG
     if (!string) {
-        NSLog(@"\n\n\n\n\n\n[Polaris] Warning: Warning: Value for key:%@ is empty or value doesn't exist.\n\n\n\n\n\n",key);
+        NSLog(@"[Polaris] Warning: Warning: Value for key:%@ is empty or value doesn't exist.",key);
     }
+    #endif
     
     return string;
 }
@@ -424,6 +492,136 @@
 
 
 #pragma mark - Private Methods
+
+
+
+- (void)autoBackup{
+    
+    if (!self.pauseAutobackup) {
+    
+    NSOperation *backgroundOperation = [[NSOperation alloc] init];
+    backgroundOperation.queuePriority = NSOperationQueuePriorityLow;
+    backgroundOperation.qualityOfService = NSOperationQualityOfServiceBackground;
+    
+    backgroundOperation.completionBlock = ^{
+      
+        
+
+        // get current date/time
+        NSDate *today = [NSDate date];
+        NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
+        // display in 12HR/24HR (i.e. 11:25PM or 23:25) format according to User Settings
+        [dateFormatter setTimeStyle:NSDateFormatterShortStyle];
+        NSString *currentTime = [dateFormatter stringFromDate:today];
+        #ifdef DEBUG
+        NSLog(@"User's current time in their preference format:%@",currentTime);
+        #endif
+        
+        [self archiveWorkingCopyWithCommitMessge:currentTime andTitle:@"Autobackup"];
+        
+        
+    };
+    
+    
+        [[NSOperationQueue mainQueue] addOperation:backgroundOperation];
+    }
+}
+
+
+
+
+
+
+#pragma mark - Shortcuts
+
+
+
+
+
+- (void)archiveWorkingCopyWithCommitMessge:(NSString *)message andTitle:(NSString *)title{
+    
+    if (!initWithProjectCreator) {
+        
+        
+        if ([message isEqualToString:@"Enter commit message here"]) {
+            message = @"";
+        }
+        
+//        NSOperation *backgroundOperation = [[NSOperation alloc] init];
+//        backgroundOperation.queuePriority = NSOperationQueuePriorityLow;
+//        backgroundOperation.qualityOfService = NSOperationQualityOfServiceBackground;
+//        
+//        backgroundOperation.completionBlock = ^{
+        
+            
+            NSString *destination;
+            
+            if (title.length == 0) {
+                NSString *version = [self privateProjectVersion];
+                int newVersion = version.intValue + 1;
+                [self updateVersionNumberToVersion:newVersion];
+                
+                destination = [NSString stringWithFormat:@"%@/Version%@",[self projectVersionsPath], version];
+            }
+            else{
+                destination = [[self projectVersionsPath] stringByAppendingPathComponent:title];
+                if ([self checkIfBackupExists]) {
+                
+                    [self deleteBackup];
+                    
+                }
+            }
+            
+            
+            NSError *error;
+            NSFileManager *fm = [NSFileManager defaultManager];
+            [fm copyItemAtPath:[self projectUserDirectoryPath] toPath:destination error:&error];
+            
+            if (error) {
+                #ifdef DEBUG
+                NSLog(@"[Polaris] ERROR: Failed to archive project. Details: %@",[error localizedDescription]);
+                #endif
+            }
+            else{
+                
+                NSError *error2;
+                NSString *dataPath = [destination stringByAppendingPathComponent:@"data"];
+                
+                if (!message.length == 0) {
+                    
+                    [message writeToFile:dataPath atomically:true encoding:NSUTF8StringEncoding error:&error2];
+                    
+                    if (error) {
+                        #ifdef DEBUG
+                        NSLog(@"[Polaris] ERROR: Failed to save the comment to the archive. Details: %@",[error2 localizedDescription]);
+                        #endif
+                    }
+                    else{
+                        #ifdef DEBUG
+                        NSLog(@"[Polaris] Message: Project was archived.");
+                        #endif
+                    }
+                }
+                else{
+                    #ifdef DEBUG
+                    NSLog(@"[Polaris] Message: Project was archived without a note.");
+                    #endif
+                }
+            }
+            
+        };
+        
+        
+//        [[NSOperationQueue mainQueue] addOperation:backgroundOperation];
+//        
+//        
+//    }
+    
+    
+}
+
+
+
 
 
 - (void)saveWithoutEncryptionValue:(id)anObject forKey:(NSString *)key{
@@ -438,10 +636,11 @@
     NSDictionary *dict = [self getProjectSettingsDictionary];
     NSString *string = [dict valueForKey:key];
     
+    #ifdef DEBUG
     if (!string) {
-        NSLog(@"\n\n\n\n\n\n[Polaris] Warning: Warning: Value for key:%@ is empty or value doesn't exist.\n\n\n\n\n\n",key);
+        NSLog(@"[Polaris] Warning: Warning: Value for key:%@ is empty or value doesn't exist.",key);
     }
-    
+    #endif
     return string;
     
 }
@@ -516,10 +715,11 @@
                                             password:key
                                                error:&error];
     
+    #ifdef DEBUG
     if (error) {
-        NSLog(@"\n\n\n\n\n\n[Polaris] ERROR: An unexpected error happened: %@\n\n\n\n\n\n",[error localizedDescription]);
+        NSLog(@"[Polaris] ERROR: An unexpected error happened: %@",[error localizedDescription]);
     }
-    
+    #endif
     
     
     return encryptedData;
@@ -533,7 +733,9 @@
                                                error:&error];
     
     if (error) {
-        NSLog(@"\n\n\n\n\n\n[Polaris] ERROR: An unexpected error happened: %@\n\n\n\n\n\n",[error localizedDescription]);
+        #ifdef DEBUG
+        NSLog(@"[Polaris] ERROR: An unexpected error happened: %@",[error localizedDescription]);
+        #endif
         return nil;
     }
     else{
@@ -548,9 +750,11 @@
     if (!initWithProjectCreator) {
         NSString *version = [NSString stringWithFormat:@"%@.0", [self getSettingsDataForKey:@"version"]];
         
+        #ifdef DEBUG
         if (version.length == 0) {
-            NSLog(@"\n\n\n\n\n\n[Polaris] Warning: There's no version saved. Save a version for key:'Version'\n\n\n\n\n\n");
+            NSLog(@"[Polaris] Warning: There's no version saved. Save a version for key:'Version'");
         }
+        #endif
         
         return version;
     }
