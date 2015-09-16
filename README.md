@@ -2,11 +2,7 @@
 
 
 
-<<<<<<< HEAD
-#### The file management system
-=======
 #### The High-Level API collection 
->>>>>>> 6de7ef1d3dde4990821b1e12efd57fb2556c0661
 
 
 
@@ -97,18 +93,6 @@ Many thanks to [RNCryptor](https://github.com/RNCryptor) for the encryption rela
 
 -----
 
-<<<<<<< HEAD
-
-## Coming Soon
-
-
-- Neuron (Closed Source Framework). You will find out lata this year what exactly that is! We can say tough: It will revolutionize some stuff
-
-
-
-
-=======
->>>>>>> 6de7ef1d3dde4990821b1e12efd57fb2556c0661
 ## Learn More
 
 
@@ -121,8 +105,4 @@ To learn more about Polaris, you can contact [VWAS](mailto:vwas@vwas.pfweb.eu).
 
 
 
-<<<<<<< HEAD
 Made with ❤️ by VWAS Studios in 🇩🇪 and 🇦🇺. &copy; 2015 VWAS Studios
-=======
-Made with ❤️ by VWAS Studios in 🇩🇪 and 🇦🇺. &copy; 2015 VWAS Studios
->>>>>>> 6de7ef1d3dde4990821b1e12efd57fb2556c0661
