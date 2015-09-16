@@ -42,7 +42,7 @@
  * @param extension Extension of the project.
  * @warning Do not use this for initializing a project!
  * @code
- * GoldProjectManager *projectManager = [[GoldProjectManager alloc] initWithProjectCreatorAtPath:pathWhereProjWillBeCreated withName:projName andExtension:projExtension];
+ * Polaris *projectManager = [[Polaris alloc] initWithProjectCreatorAtPath:pathWhereProjWillBeCreated withName:projName andExtension:projExtension];
  * @endcode
  * @since 1.0
  */
@@ -54,7 +54,7 @@
  * @param path Path of the directory where all reqired files will be injected.
  * @warning Do not use this for initializing a project or when initWithProjectCreatorAtPath: could be used!
  * @code
- * GoldProjectManager *projectManager = [[GoldProjectManager alloc] createProjectRequiredFilesAtPath:(NSString *)path];
+ * Polaris *projectManager = [[Polaris alloc] createProjectRequiredFilesAtPath:(NSString *)path];
  * @endcode
  * @since 1.1
  */

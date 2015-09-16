@@ -698,7 +698,7 @@
 
 
 - (NSString *)projectSettingsDictionaryPath{
-    return [[self projectSettingsPath] stringByAppendingPathComponent:@"settings.goldSettings"];
+    return [[self projectSettingsPath] stringByAppendingPathComponent:@"settings.cnSettings"];
 }
 
 

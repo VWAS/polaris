@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2012-2014, Pierre-Olivier Latour
+ Copyright (c) 2012-2015, Pierre-Olivier Latour
  All rights reserved.
  
  Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@
 #endif
 #endif
 #import <netinet/in.h>
+#import <dns_sd.h>
 
 #import "GCDWebServerPrivate.h"
 
@@ -47,9 +48,12 @@
 #define kDefaultPort 8080
 #endif
 
+#define kBonjourResolutionTimeout 5.0
+
 NSString* const GCDWebServerOption_Port = @"Port";
 NSString* const GCDWebServerOption_BonjourName = @"BonjourName";
 NSString* const GCDWebServerOption_BonjourType = @"BonjourType";
+NSString* const GCDWebServerOption_RequestNATPortMapping = @"RequestNATPortMapping";
 NSString* const GCDWebServerOption_BindToLocalhost = @"BindToLocalhost";
 NSString* const GCDWebServerOption_MaxPendingConnections = @"MaxPendingConnections";
 NSString* const GCDWebServerOption_ServerName = @"ServerName";
@@ -171,6 +175,11 @@ static void _ExecuteMainThreadRunLoopSources() {
   dispatch_source_t _source6;
   CFNetServiceRef _registrationService;
   CFNetServiceRef _resolutionService;
+  DNSServiceRef _dnsService;
+  CFSocketRef _dnsSocket;
+  CFRunLoopSourceRef _dnsSource;
+  NSString* _dnsAddress;
+  NSUInteger _dnsPort;
   BOOL _bindToLocalhost;
 #if TARGET_OS_IPHONE
   BOOL _suspendInBackground;
@@ -369,7 +378,10 @@ static void _NetServiceRegisterCallBack(CFNetServiceRef service, CFStreamError* 
     } else {
       GCDWebServer* server = (__bridge GCDWebServer*)info;
       GWS_LOG_VERBOSE(@"Bonjour registration complete for %@", [server class]);
-      CFNetServiceResolveWithTimeout(server->_resolutionService, 1.0, NULL);
+      if (!CFNetServiceResolveWithTimeout(server->_resolutionService, kBonjourResolutionTimeout, NULL)) {
+        GWS_LOG_ERROR(@"Failed starting Bonjour resolution");
+        GWS_DNOT_REACHED();
+      }
     }
   }
 }
@@ -383,10 +395,45 @@ static void _NetServiceResolveCallBack(CFNetServiceRef service, CFStreamError* e
       }
     } else {
       GCDWebServer* server = (__bridge GCDWebServer*)info;
-      GWS_LOG_INFO(@"%@ now reachable at %@", [server class], server.bonjourServerURL);
+      GWS_LOG_INFO(@"%@ now locally reachable at %@", [server class], server.bonjourServerURL);
       if ([server.delegate respondsToSelector:@selector(webServerDidCompleteBonjourRegistration:)]) {
         [server.delegate webServerDidCompleteBonjourRegistration:server];
       }
+    }
+  }
+}
+
+static void _DNSServiceCallBack(DNSServiceRef sdRef, DNSServiceFlags flags, uint32_t interfaceIndex, DNSServiceErrorType errorCode, uint32_t externalAddress, DNSServiceProtocol protocol, uint16_t internalPort, uint16_t externalPort, uint32_t ttl, void* context) {
+  GWS_DCHECK([NSThread isMainThread]);
+  @autoreleasepool {
+    GCDWebServer* server = (__bridge GCDWebServer*)context;
+    if ((errorCode == kDNSServiceErr_NoError) || (errorCode == kDNSServiceErr_DoubleNAT)) {
+      struct sockaddr_in addr4;
+      bzero(&addr4, sizeof(addr4));
+      addr4.sin_len = sizeof(addr4);
+      addr4.sin_family = AF_INET;
+      addr4.sin_addr.s_addr = externalAddress;  // Already in network byte order
+      server->_dnsAddress = GCDWebServerStringFromSockAddr((const struct sockaddr*)&addr4, NO);
+      server->_dnsPort = ntohs(externalPort);
+      GWS_LOG_INFO(@"%@ now publicly reachable at %@", [server class], server.publicServerURL);
+    } else {
+      GWS_LOG_ERROR(@"DNS service error %i", errorCode);
+      server->_dnsAddress = nil;
+      server->_dnsPort = 0;
+    }
+    if ([server.delegate respondsToSelector:@selector(webServerDidUpdateNATPortMapping:)]) {
+      [server.delegate webServerDidUpdateNATPortMapping:server];
+    }
+  }
+}
+
+static void _SocketCallBack(CFSocketRef s, CFSocketCallBackType type, CFDataRef address, const void* data, void* info) {
+  GWS_DCHECK([NSThread isMainThread]);
+  @autoreleasepool {
+    GCDWebServer* server = (__bridge GCDWebServer*)info;
+    DNSServiceErrorType status = DNSServiceProcessResult(server->_dnsService);
+    if (status != kDNSServiceErr_NoError) {
+      GWS_LOG_ERROR(@"DNS service error %i", status);
     }
   }
 }
@@ -574,9 +621,34 @@ static inline NSString* _EncodeBase64(NSString* string) {
       if (_resolutionService) {
         CFNetServiceSetClient(_resolutionService, _NetServiceResolveCallBack, &context);
         CFNetServiceScheduleWithRunLoop(_resolutionService, CFRunLoopGetMain(), kCFRunLoopCommonModes);
+      } else {
+        GWS_LOG_ERROR(@"Failed creating CFNetService for resolution");
       }
     } else {
-      GWS_LOG_ERROR(@"Failed creating CFNetService");
+      GWS_LOG_ERROR(@"Failed creating CFNetService for registration");
+    }
+  }
+  
+  if ([_GetOption(_options, GCDWebServerOption_RequestNATPortMapping, @NO) boolValue]) {
+    DNSServiceErrorType status = DNSServiceNATPortMappingCreate(&_dnsService, 0, 0, kDNSServiceProtocol_TCP, htons(port), htons(port), 0, _DNSServiceCallBack, (__bridge void*)self);
+    if (status == kDNSServiceErr_NoError) {
+      CFSocketContext context = {0, (__bridge void*)self, NULL, NULL, NULL};
+      _dnsSocket = CFSocketCreateWithNative(kCFAllocatorDefault, DNSServiceRefSockFD(_dnsService), kCFSocketReadCallBack, _SocketCallBack, &context);
+      if (_dnsSocket) {
+        CFSocketSetSocketFlags(_dnsSocket, CFSocketGetSocketFlags(_dnsSocket) & ~kCFSocketCloseOnInvalidate);
+        _dnsSource = CFSocketCreateRunLoopSource(kCFAllocatorDefault, _dnsSocket, 0);
+        if (_dnsSource) {
+          CFRunLoopAddSource(CFRunLoopGetMain(), _dnsSource, kCFRunLoopCommonModes);
+        } else {
+          GWS_LOG_ERROR(@"Failed creating CFRunLoopSource");
+          GWS_DNOT_REACHED();
+        }
+      } else {
+        GWS_LOG_ERROR(@"Failed creating CFSocket");
+        GWS_DNOT_REACHED();
+      }
+    } else {
+      GWS_LOG_ERROR(@"Failed creating NAT port mapping (%i)", status);
     }
   }
   
@@ -594,6 +666,22 @@ static inline NSString* _EncodeBase64(NSString* string) {
 
 - (void)_stop {
   GWS_DCHECK(_source4 != NULL);
+  
+  if (_dnsService) {
+    _dnsAddress = nil;
+    _dnsPort = 0;
+    if (_dnsSource) {
+      CFRunLoopSourceInvalidate(_dnsSource);
+      CFRelease(_dnsSource);
+      _dnsSource = NULL;
+    }
+    if (_dnsSocket) {
+      CFRelease(_dnsSocket);
+      _dnsSocket = NULL;
+    }
+    DNSServiceRefDeallocate(_dnsService);
+    _dnsService = NULL;
+  }
   
   if (_registrationService) {
     if (_resolutionService) {
@@ -741,6 +829,17 @@ static inline NSString* _EncodeBase64(NSString* string) {
       } else {
         return [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/", name]];
       }
+    }
+  }
+  return nil;
+}
+
+- (NSURL*)publicServerURL {
+  if (_source4 && _dnsService && _dnsAddress && _dnsPort) {
+    if (_dnsPort != 80) {
+      return [NSURL URLWithString:[NSString stringWithFormat:@"http://%@:%i/", _dnsAddress, (int)_dnsPort]];
+    } else {
+      return [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/", _dnsAddress]];
     }
   }
   return nil;
