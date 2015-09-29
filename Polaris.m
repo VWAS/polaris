@@ -25,7 +25,6 @@
 
 #import "Polaris.h"
 
-
 //Web server
 #import "GCDWebServer.h"
 #import "GCDWebServerDataResponse.h"
@@ -39,6 +38,7 @@
 #import "RNEncryptor.h"
 #import "RNDecryptor.h"
 
+#define IS_RETINA ([[UIScreen mainScreen] respondsToSelector:@selector(displayLinkWithTarget:selector:)] && ([UIScreen mainScreen].scale >= 2.0))
 
 @interface Polaris () {
     
@@ -48,7 +48,9 @@
     GCDWebUploader *_webUploader;
     GCDWebDAVServer *_davServer;
     
-    Polaris *projectManager;
+    
+    WKWebView *webPreviewView;
+    
     
     NSTimer *autoBackup;
     
@@ -97,13 +99,17 @@
 
         
         NSError *error;
+        NSFileManager *fm = [NSFileManager defaultManager];
         
-        [[NSFileManager defaultManager] createDirectoryAtPath:creationPath withIntermediateDirectories:NO attributes:nil error:&error];
-        [[NSFileManager defaultManager] createDirectoryAtPath:[self projectVersionsPath] withIntermediateDirectories:NO attributes:nil error:&error];
-        [[NSFileManager defaultManager] createDirectoryAtPath:[self projectUserDirectoryPath] withIntermediateDirectories:NO attributes:nil error:&error];
-        [[NSFileManager defaultManager] createDirectoryAtPath:[self projectTempPath] withIntermediateDirectories:NO attributes:nil error:&error];
-        [[NSFileManager defaultManager] createDirectoryAtPath:[self projectSettingsPath] withIntermediateDirectories:NO attributes:nil error:&error];
+        [fm createDirectoryAtPath:creationPath withIntermediateDirectories:NO attributes:nil error:&error];
+        [fm createDirectoryAtPath:[self projectVersionsPath] withIntermediateDirectories:NO attributes:nil error:&error];
+        [fm createDirectoryAtPath:[self projectUserDirectoryPath] withIntermediateDirectories:NO attributes:nil error:&error];
+        [fm createDirectoryAtPath:[self projectTempPath] withIntermediateDirectories:NO attributes:nil error:&error];
+        [fm createDirectoryAtPath:[self projectSettingsPath] withIntermediateDirectories:NO attributes:nil error:&error];
+        [fm createDirectoryAtPath:[self appleTVPreviewPath] withIntermediateDirectories:NO attributes:nil error:&error];
         
+        NSString *atvIndex = @"<NEURON>/nNEURON() __PH \n()Neuron";
+        [atvIndex writeToFile:[[self appleTVPreviewPath] stringByAppendingPathComponent:@"index.html"] atomically:YES encoding:NSUTF8StringEncoding error:&error];
         
         if (error) {
             #ifdef DEBUG
@@ -134,7 +140,11 @@
         [[NSFileManager defaultManager] createDirectoryAtPath:[self projectUserDirectoryPath] withIntermediateDirectories:YES attributes:nil error:&error];
         [[NSFileManager defaultManager] createDirectoryAtPath:[self projectTempPath] withIntermediateDirectories:YES attributes:nil error:&error];
         [[NSFileManager defaultManager] createDirectoryAtPath:[self projectSettingsPath] withIntermediateDirectories:YES attributes:nil error:&error];
-        
+        [[NSFileManager defaultManager] createDirectoryAtPath:[self appleTVPreviewPath] withIntermediateDirectories:NO attributes:nil error:&error];
+
+        NSString *atvIndex = @"<NEURON>/nNEURON() __PH \n()Neuron";
+        [atvIndex writeToFile:[[self appleTVPreviewPath] stringByAppendingPathComponent:@"index.html"] atomically:YES encoding:NSUTF8StringEncoding error:&error];
+
         
         if (error) {
             #ifdef DEBUG
@@ -170,6 +180,58 @@
 }
 
 
+
+- (instancetype)initWithProjectPath:(NSString *)path currentView:(UIView *)view WithWebServer:(BOOL)useWebServer UploadServer:(BOOL)useUploadServer andWebDavServer:(BOOL)useWebDavServer{
+    self = [super init];
+    
+    
+    if (self) {
+        
+        projectPath = path;
+        inspectorPath = [self projectUserDirectoryPath];
+        
+        if (useWebServer || useUploadServer || useWebDavServer) {
+            [self startServerForWeb:useWebServer forUploading:useUploadServer forWebDav:useWebDavServer];
+            
+            
+            //tvOS thing
+            WKWebViewConfiguration *webViewConfiguration = [[WKWebViewConfiguration alloc] init];
+            webViewConfiguration.allowsInlineMediaPlayback = NO;
+            webViewConfiguration.allowsAirPlayForMediaPlayback = NO;
+            webViewConfiguration.requiresUserActionForMediaPlayback = YES;
+            webViewConfiguration.applicationNameForUserAgent = @"Codinator";
+            webViewConfiguration.allowsPictureInPictureMediaPlayback = NO;
+            
+            
+            CGRect frame;
+            
+            if (IS_RETINA) {
+                frame = CGRectMake(view.frame.size.width+1000, 0, 960, 540);
+            }
+            else{
+                frame = CGRectMake(view.frame.size.width+1000, 0, 1920, 1080);
+            }
+            
+            
+            webPreviewView = [[WKWebView alloc]initWithFrame:frame configuration:webViewConfiguration];
+            webPreviewView.navigationDelegate = self;
+            [view insertSubview:webPreviewView atIndex:0];
+            
+        }
+        
+        [self autoBackup];
+        autoBackup = [NSTimer scheduledTimerWithTimeInterval: 520.0 target: self selector:@selector(autoBackup) userInfo: nil repeats:YES];
+    }
+    
+    return self;
+}
+
+
+
+
+
+
+
 - (void)close{
     
     [autoBackup invalidate];
@@ -194,6 +256,107 @@
 
 
 #pragma mark - functions
+
+
+
+- (void)generateATVPreview{
+
+    NSURL *fileUrl = [NSURL fileURLWithPath:self.selectedFilePath isDirectory:NO];
+    NSURL *rootUrl = [NSURL fileURLWithPath:[self.selectedFilePath stringByDeletingLastPathComponent] isDirectory:YES];
+        
+
+    [webPreviewView loadFileURL:fileUrl allowingReadAccessToURL:rootUrl];
+
+            
+    
+}
+
+
+- (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation{
+    
+    dispatch_semaphore_t semaphore = dispatch_semaphore_create(1);
+    dispatch_queue_t renderQueue = dispatch_queue_create("com.throttling.queue", NULL);
+    
+    
+    if (dispatch_semaphore_wait(semaphore, DISPATCH_TIME_NOW) == 0) {
+        dispatch_async(renderQueue, ^{
+            // capture
+            
+            
+            
+            NSOperation *backgroundOperation = [[NSOperation alloc] init];
+            backgroundOperation.queuePriority = NSOperationQueuePriorityLow;
+            backgroundOperation.qualityOfService = NSOperationQualityOfServiceBackground;
+            
+            backgroundOperation.completionBlock = ^{
+                
+                
+                // Capture
+                
+                UIGraphicsBeginImageContextWithOptions(CGSizeMake(webPreviewView.frame.size.width, webPreviewView.frame.size.height),
+                                                       YES, 0.0);
+                [webPreviewView drawViewHierarchyInRect:webPreviewView.bounds afterScreenUpdates:NO];
+                
+                
+                
+                UIImage* newImage = UIGraphicsGetImageFromCurrentImageContext();
+                UIGraphicsEndImageContext();
+                
+                
+                // Save image to path
+                NSData *tvImage = UIImageJPEGRepresentation(newImage, 0.80);
+                
+                NSString *path = [[self projectUserDirectoryPath] stringByAppendingPathComponent:@".atvImage_CN.jpg"];
+                [tvImage writeToFile:path atomically:YES];
+                
+                
+            };
+            
+            
+            [[NSOperationQueue mainQueue] addOperation:backgroundOperation];
+            
+            
+            
+            
+            
+            
+            dispatch_semaphore_signal(semaphore);
+        });
+    }
+
+    
+}
+
+
+
+- (UIImage *)captureScreen:(WKWebView *) viewToCapture{
+   
+    // Create a new view with Full HD dimensions
+    WKWebView *tmpView = viewToCapture;
+    
+    CGRect frame = tmpView.frame;
+    
+    if (IS_RETINA) {
+        frame.size.height = 540;
+        frame.size.width = 960;
+    }
+    else{
+        frame.size.height = 1080;
+        frame.size.width = 1920;
+    }
+    
+    tmpView.frame = frame;
+    
+    UIGraphicsBeginImageContextWithOptions(CGSizeMake(1920, 1080),
+                                           YES, 0.0);
+    [tmpView drawViewHierarchyInRect:tmpView.bounds afterScreenUpdates:YES];
+    UIImage* newImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return newImage;
+}
+
+
+
 
 
 
@@ -226,12 +389,10 @@
     if (!initWithProjectCreator) {
         
         NSURL *url = [NSURL fileURLWithPath:inspectorPath isDirectory:YES];
-        NSArray *items = [[NSFileManager defaultManager] contentsOfDirectoryAtURL:url includingPropertiesForKeys:[NSArray arrayWithObject:NSURLNameKey] options:NSDirectoryEnumerationSkipsHiddenFiles error:nil];
+        NSMutableArray *items = [[[NSFileManager defaultManager] contentsOfDirectoryAtURL:url includingPropertiesForKeys:[NSArray arrayWithObject:NSURLNameKey] options:NSDirectoryEnumerationSkipsHiddenFiles error:nil] mutableCopy];
         
-        return [items mutableCopy];
-        
-        //return [[[NSFileManager defaultManager] contentsOfDirectoryAtPath:inspectorPath error:nil] mutableCopy];
-    
+        return items;
+            
     }
     else{
         #ifdef DEBUG
@@ -246,9 +407,10 @@
     if (!initWithProjectCreator) {
         
         NSURL *url = [NSURL fileURLWithPath:path isDirectory:YES];
-        NSArray *items = [[NSFileManager defaultManager] contentsOfDirectoryAtURL:url includingPropertiesForKeys:[NSArray arrayWithObject:NSURLNameKey] options:NSDirectoryEnumerationSkipsHiddenFiles error:nil];
-    
-    return [items mutableCopy];
+        NSMutableArray *items = [[[NSFileManager defaultManager] contentsOfDirectoryAtURL:url includingPropertiesForKeys:[NSArray arrayWithObject:NSURLNameKey] options:NSDirectoryEnumerationSkipsHiddenFiles error:nil] mutableCopy];
+
+        
+    return items;
     
     }
     else{
@@ -365,6 +527,9 @@
     return [projectPath stringByAppendingPathComponent:@"Config"];
 }
 
+- (NSString *)appleTVPreviewPath{
+    return [projectPath stringByAppendingPathComponent:@"ATV4"];
+}
 
 #pragma mark - Values
 
@@ -655,7 +820,6 @@
         _webServer = [[GCDWebServer alloc] init];
         [_webServer addGETHandlerForBasePath:@"/" directoryPath:path indexFilename:@"index.html" cacheAge:3600 allowRangeRequests:YES];
         [_webServer startWithPort:8080 bonjourName:nil];
-        
 
     }
     

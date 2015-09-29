@@ -24,13 +24,15 @@
  */
 
 @import Foundation;
+@import WebKit;
+
 
 #import "Thumbnail.h"
 #import "UIColor+HexString.h"
 #import "NSUserDefaults+Additions.h"
 
 
-@interface Polaris : NSObject
+@interface Polaris : NSObject <WKNavigationDelegate>
 
 
 
@@ -61,6 +63,11 @@
 - (instancetype)initWithCreatingProjectRequiredFilesAtPath:(NSString *)path;
 
 
+
+- (instancetype)initWithProjectPath:(NSString *)path andWithWebServer:(BOOL)useWebServer UploadServer:(BOOL)useUploadServer andWebDavServer:(BOOL)useWebDavServer __deprecated_msg("use initWithProjectPath: currentView: instead.");
+
+
+
 /**
  * @brief The default initializer.
  * @discussion This is the default initializer.
@@ -72,9 +79,10 @@
  * @code
  * Polaris *projectManager = [[Polaris alloc] initWithProjectPath:path andWithWebServer:true UploadServer:true andWebDavServer:true];
  * @endcode
- * @since 0.4
+ * @since 1.4
  */
-- (instancetype)initWithProjectPath:(NSString *)path andWithWebServer:(BOOL)useWebServer UploadServer:(BOOL)useUploadServer andWebDavServer:(BOOL)useWebDavServer;
+- (instancetype)initWithProjectPath:(NSString *)path currentView:(UIView *)view WithWebServer:(BOOL)useWebServer UploadServer:(BOOL)useUploadServer andWebDavServer:(BOOL)useWebDavServer;
+
 
 
 /**
@@ -140,6 +148,10 @@
 
 
 #pragma mark - functions
+
+
+- (void)generateATVPreview;
+
 
 /**
  * @brief Path Removes everything before the Assets folder from the path of the selected file
@@ -274,7 +286,7 @@
  * @code
  * NSString *path = [projectManager projectUserDirectoryPath];
  * @endcode
- * @return Returns the prooject user directory path
+ * @return Returns the project user directory path
  * @since 0.4
  */
 - (NSString *)projectUserDirectoryPath;
@@ -286,7 +298,7 @@
  * @code
  * NSString *path = [projectManager projectVersionsPath];
  * @endcode
- * @return Returns the prooject user directory path
+ * @return Returns the project user directory path
  * @since 0.4
  */
 - (NSString *)projectVersionsPath;
@@ -299,7 +311,7 @@
  * @code
  * NSString *path = [projectManager projectTempPath];
  * @endcode
- * @return Returns the proojects temp directory path
+ * @return Returns the projects temp directory path
  * @since 1.1
  */
 - (NSString *)projectTempPath;
@@ -312,12 +324,23 @@
  * @code
  * NSString *path = [projectManager projectVersionsPath];
  * @endcode
- * @return Returns the prooject user directory path
+ * @return Returns the project user directory path
  * @since 0.4
  */
 - (NSString *)projectSettingsPath;
 
 
+/**
+ * @brief The project Apple TV 4+ Preview file(s)
+ * @discussion This method returns the path of the Apple TV 4+ data directory.
+ * @warning Do not use this path so save settings or user documents related things nor other kind of files than PNGs.
+ * @code
+ * NSString *path = [projectManager appleTVPreviewPath];
+ * @endcode
+ * @return Returns the Apple TV 4+ directory path
+ * @since 1.4
+ */
+- (NSString *)appleTVPreviewPath;
 
 #pragma mark - Values
 /**
