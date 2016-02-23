@@ -753,7 +753,7 @@
                 NSString *dataPath = [destination stringByAppendingPathComponent:@"data"];
                 
                 if (!message.length == 0) {
-                    
+                      
                     [message writeToFile:dataPath atomically:true encoding:NSUTF8StringEncoding error:&error2];
                     
                     if (error) {
