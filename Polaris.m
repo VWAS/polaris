@@ -712,11 +712,11 @@
             message = @"";
         }
         
-//        NSOperation *backgroundOperation = [[NSOperation alloc] init];
-//        backgroundOperation.queuePriority = NSOperationQueuePriorityLow;
-//        backgroundOperation.qualityOfService = NSOperationQualityOfServiceBackground;
-//        
-//        backgroundOperation.completionBlock = ^{
+        NSOperation *backgroundOperation = [[NSOperation alloc] init];
+        backgroundOperation.queuePriority = NSOperationQueuePriorityLow;
+        backgroundOperation.qualityOfService = NSOperationQualityOfServiceBackground;
+        
+        backgroundOperation.completionBlock = ^{
         
             
             NSString *destination;
@@ -752,7 +752,7 @@
                 NSError *error2;
                 NSString *dataPath = [destination stringByAppendingPathComponent:@"data"];
                 
-                if (!message.length == 0) {
+                if (message.length != 0) {
                       
                     [message writeToFile:dataPath atomically:true encoding:NSUTF8StringEncoding error:&error2];
                     
@@ -777,10 +777,9 @@
         };
         
         
-//        [[NSOperationQueue mainQueue] addOperation:backgroundOperation];
-//        
-//        
-//    }
+        [[NSOperationQueue mainQueue] addOperation:backgroundOperation];
+
+    }
     
     
 }
