@@ -241,8 +241,9 @@
 }
 
 - (void)performReadDataWithCompletion:(GCDWebServerBodyReaderCompletionBlock)block {
+  GWS_DCHECK(_opened);
   if ([_reader respondsToSelector:@selector(asyncReadDataWithCompletion:)]) {
-    [_reader asyncReadDataWithCompletion:block];
+    [_reader asyncReadDataWithCompletion:[block copy]];
   } else {
     NSError* error = nil;
     NSData* data = [_reader readData:&error];

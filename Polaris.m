@@ -100,7 +100,7 @@
         
         NSError *error;
         NSFileManager *fm = [NSFileManager defaultManager];
-        
+             
         [fm createDirectoryAtPath:creationPath withIntermediateDirectories:NO attributes:nil error:&error];
         [fm createDirectoryAtPath:[self projectVersionsPath] withIntermediateDirectories:NO attributes:nil error:&error];
         [fm createDirectoryAtPath:[self projectUserDirectoryPath] withIntermediateDirectories:NO attributes:nil error:&error];
@@ -183,7 +183,7 @@
 
 - (instancetype)initWithProjectPath:(NSString *)path currentView:(UIView *)view WithWebServer:(BOOL)useWebServer UploadServer:(BOOL)useUploadServer andWebDavServer:(BOOL)useWebDavServer{
     self = [super init];
-    
+      
     
     if (self) {
         
@@ -740,38 +740,42 @@
             
             NSError *error;
             NSFileManager *fm = [NSFileManager defaultManager];
-            [fm copyItemAtPath:[self projectUserDirectoryPath] toPath:destination error:&error];
             
-            if (error) {
-                #ifdef DEBUG
-                NSLog(@"[Polaris] ERROR: Failed to archive project. Details: %@",[error localizedDescription]);
-                #endif
-            }
-            else{
+            if (self && destination && [self projectUserDirectoryPath]) {
+                [fm copyItemAtPath:[self projectUserDirectoryPath] toPath:destination error:&error];
                 
-                NSError *error2;
-                NSString *dataPath = [destination stringByAppendingPathComponent:@"data"];
-                
-                if (message.length != 0) {
-                      
-                    [message writeToFile:dataPath atomically:true encoding:NSUTF8StringEncoding error:&error2];
-                    
-                    if (error) {
-                        #ifdef DEBUG
-                        NSLog(@"[Polaris] ERROR: Failed to save the comment to the archive. Details: %@",[error2 localizedDescription]);
-                        #endif
-                    }
-                    else{
-                        #ifdef DEBUG
-                        NSLog(@"[Polaris] Message: Project was archived.");
-                        #endif
-                    }
+                if (error) {
+#ifdef DEBUG
+                    NSLog(@"[Polaris] ERROR: Failed to archive project. Details: %@",[error localizedDescription]);
+#endif
                 }
                 else{
-                    #ifdef DEBUG
-                    NSLog(@"[Polaris] Message: Project was archived without a note.");
-                    #endif
+                    
+                    NSError *error2;
+                    NSString *dataPath = [destination stringByAppendingPathComponent:@"data"];
+                    
+                    if (message.length != 0) {
+                        
+                        [message writeToFile:dataPath atomically:true encoding:NSUTF8StringEncoding error:&error2];
+                        
+                        if (error) {
+#ifdef DEBUG
+                            NSLog(@"[Polaris] ERROR: Failed to save the comment to the archive. Details: %@",[error2 localizedDescription]);
+#endif
+                        }
+                        else{
+#ifdef DEBUG
+                            NSLog(@"[Polaris] Message: Project was archived.");
+#endif
+                        }
+                    }
+                    else{
+#ifdef DEBUG
+                        NSLog(@"[Polaris] Message: Project was archived without a note.");
+#endif
+                    }
                 }
+
             }
             
         };

@@ -111,7 +111,7 @@
 /**
  * @brief The path of the file browser.
  * @discussion This specifies a variable that is used for memorizing the path that is currently displayed in the file browser.
- * @warning Do not assign a path of a specific path to this variable. Use the selectedFilePath variable instead then.
+ * @warning Do not assign a path of a specific file to this variable. Use the selectedFilePath variable instead therefore.
  * @code
  * projectManager.inspectorPath = dirPath;
  * @endcode

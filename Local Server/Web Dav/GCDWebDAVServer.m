@@ -115,6 +115,11 @@ static inline BOOL _IsMacFinder(GCDWebServerRequest* request) {
       [self.delegate davServer:self didDownloadFileAtPath:absolutePath];
     });
   }
+    
+  if ([request hasByteRange]) {
+    return [GCDWebServerFileResponse responseWithFile:absolutePath byteRange:request.byteRange];
+  }
+    
   return [GCDWebServerFileResponse responseWithFile:absolutePath];
 }
 
@@ -265,7 +270,6 @@ static inline BOOL _IsMacFinder(GCDWebServerRequest* request) {
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
   dstRelativePath = [[dstRelativePath substringFromIndex:(range.location + range.length)] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
 #pragma clang diagnostic pop
-
   NSString* dstAbsolutePath = [_uploadDirectory stringByAppendingPathComponent:dstRelativePath];
   if (![self _checkSandboxedPath:dstAbsolutePath]) {
     return [GCDWebServerErrorResponse responseWithClientError:kGCDWebServerHTTPStatusCode_NotFound message:@"\"%@\" does not exist", srcRelativePath];
@@ -341,7 +345,6 @@ static inline xmlNodePtr _XMLChildWithName(xmlNodePtr child, const xmlChar* name
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
   CFStringRef escapedPath = CFURLCreateStringByAddingPercentEscapes(kCFAllocatorDefault, (__bridge CFStringRef)resourcePath, NULL, CFSTR("<&>?+"), kCFStringEncodingUTF8);
 #pragma clang diagnostic pop
-
   if (escapedPath) {
     NSDictionary* attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:itemPath error:NULL];
     NSString* type = [attributes objectForKey:NSFileType];
