@@ -105,4 +105,4 @@ To learn more about Polaris, you can contact [VWAS](mailto:vwas@vwas.pfweb.eu).
 
 
 
-Made with ❤️ by VWAS Studios in 🇩🇪 and 🇦🇺. &copy; 2015 VWAS Studios
+Made with ❤️ by VWAS Studios in 🇩🇪 and 🇦🇺. &copy; 2016 VWAS Studios
