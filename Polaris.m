@@ -42,8 +42,8 @@
 
 @interface Polaris () {
     
-    NSString *projectPath;
-
+    NSURL *projectURL;
+    
     GCDWebServer *_webServer;
     GCDWebUploader *_webUploader;
     GCDWebDAVServer *_davServer;
@@ -64,7 +64,7 @@
 
 
 @implementation Polaris
-@synthesize inspectorPath,selectedFilePath,deletePath;
+@synthesize inspectorURL,selectedFileURL,deleteURL;
 
 
 
@@ -83,44 +83,6 @@
 
 
 
-- (instancetype)initWithProjectCreatorAtPath:(NSString *)path withName:(NSString *)name andExtension:(NSString *)extension{
-    self = [super init];
-    //create project structure
-    
-    if (self) {
-    
-        initWithProjectCreator = true;
-        
-
-        NSString *projectName = [NSString stringWithFormat:@"%@.%@",name,extension];
-        NSString *creationPath = [path stringByAppendingPathComponent:projectName];
-
-        projectPath = creationPath;
-
-        
-        NSError *error;
-        NSFileManager *fm = [NSFileManager defaultManager];
-             
-        [fm createDirectoryAtPath:creationPath withIntermediateDirectories:NO attributes:nil error:&error];
-        [fm createDirectoryAtPath:[self projectVersionsPath] withIntermediateDirectories:NO attributes:nil error:&error];
-        [fm createDirectoryAtPath:[self projectUserDirectoryPath] withIntermediateDirectories:NO attributes:nil error:&error];
-        [fm createDirectoryAtPath:[self projectTempPath] withIntermediateDirectories:NO attributes:nil error:&error];
-        [fm createDirectoryAtPath:[self projectSettingsPath] withIntermediateDirectories:NO attributes:nil error:&error];
-        [fm createDirectoryAtPath:[self appleTVPreviewPath] withIntermediateDirectories:NO attributes:nil error:&error];
-        
-        NSString *atvIndex = @"<NEURON>/nNEURON() __PH \n()Neuron";
-        [atvIndex writeToFile:[[self appleTVPreviewPath] stringByAppendingPathComponent:@"index.html"] atomically:YES encoding:NSUTF8StringEncoding error:&error];
-        
-        if (error) {
-            #ifdef DEBUG
-            NSLog(@"[Polaris] ERROR: Faild to create a new Project. Please double check if the path exists.\nDescription: %@",[error localizedDescription]);
-            #endif
-        }
-        
-    }
-    
-    return self;
-}
 
 
 - (instancetype)initWithCreatingProjectRequiredFilesAtPath:(NSString *)path{
@@ -130,21 +92,20 @@
     if (self) {
         
         initWithProjectCreator = true;
-        
-        projectPath = path;
+        projectURL = [[NSURL alloc] initFileURLWithPath:path isDirectory:true];
         
         
         NSError *error;
         
-        [[NSFileManager defaultManager] createDirectoryAtPath:[self projectVersionsPath] withIntermediateDirectories:YES attributes:nil error:&error];
-        [[NSFileManager defaultManager] createDirectoryAtPath:[self projectUserDirectoryPath] withIntermediateDirectories:YES attributes:nil error:&error];
-        [[NSFileManager defaultManager] createDirectoryAtPath:[self projectTempPath] withIntermediateDirectories:YES attributes:nil error:&error];
-        [[NSFileManager defaultManager] createDirectoryAtPath:[self projectSettingsPath] withIntermediateDirectories:YES attributes:nil error:&error];
-        [[NSFileManager defaultManager] createDirectoryAtPath:[self appleTVPreviewPath] withIntermediateDirectories:NO attributes:nil error:&error];
+        NSFileManager *fileManager = [NSFileManager defaultManager];
+        [fileManager createDirectoryAtURL:[self projectVersionURL] withIntermediateDirectories:YES attributes:nil error:&error];
+        [fileManager createDirectoryAtURL:[self projectUserDirectoryURL] withIntermediateDirectories:YES attributes:nil error:&error];
+        [fileManager createDirectoryAtURL:[self projectTempURL] withIntermediateDirectories:YES attributes:nil error:&error];
+        [fileManager createDirectoryAtURL:[self projectSettingsURL] withIntermediateDirectories:YES attributes:nil error:&error];
+        [fileManager createDirectoryAtURL:[self appleTVPreviewURL] withIntermediateDirectories:YES attributes:nil error:&error];
 
         NSString *atvIndex = @"<NEURON>/nNEURON() __PH \n()Neuron";
-        [atvIndex writeToFile:[[self appleTVPreviewPath] stringByAppendingPathComponent:@"index.html"] atomically:YES encoding:NSUTF8StringEncoding error:&error];
-
+        [atvIndex writeToURL:[[self appleTVPreviewURL] URLByAppendingPathComponent:@"index.html" isDirectory:NO] atomically:YES encoding:NSUTF8StringEncoding error:&error];
         
         if (error) {
             #ifdef DEBUG
@@ -159,27 +120,6 @@
 
 
 
-- (instancetype)initWithProjectPath:(NSString *)path andWithWebServer:(BOOL)useWebServer UploadServer:(BOOL)useUploadServer andWebDavServer:(BOOL)useWebDavServer{
-    self = [super init];
-    
-    
-    if (self) {
-    
-        projectPath = path;
-        inspectorPath = [self projectUserDirectoryPath];
-
-        if (useWebServer || useUploadServer || useWebDavServer) {
-            [self startServerForWeb:useWebServer forUploading:useUploadServer forWebDav:useWebDavServer];
-        }
-      
-        [self autoBackup];
-        autoBackup = [NSTimer scheduledTimerWithTimeInterval: 520.0 target: self selector:@selector(autoBackup) userInfo: nil repeats:YES];
-    }
-    
-    return self;
-}
-
-
 
 - (instancetype)initWithProjectPath:(NSString *)path currentView:(UIView *)view WithWebServer:(BOOL)useWebServer UploadServer:(BOOL)useUploadServer andWebDavServer:(BOOL)useWebDavServer{
     self = [super init];
@@ -187,8 +127,8 @@
     
     if (self) {
         
-        projectPath = path;
-        inspectorPath = [self projectUserDirectoryPath];
+        projectURL = [[NSURL alloc] initFileURLWithPath:path isDirectory:true];
+        inspectorURL = [self projectUserDirectoryURL];
         
         if (useWebServer || useUploadServer || useWebDavServer) {
             [self startServerForWeb:useWebServer forUploading:useUploadServer forWebDav:useWebDavServer];
@@ -261,8 +201,9 @@
 
 - (void)generateATVPreview{
 
-    NSURL *fileUrl = [NSURL fileURLWithPath:self.selectedFilePath isDirectory:NO];
-    NSURL *rootUrl = [NSURL fileURLWithPath:[self.selectedFilePath stringByDeletingLastPathComponent] isDirectory:YES];
+    NSURL *fileUrl = selectedFileURL;
+    NSURL *rootUrl = selectedFileURL;
+    
         
 
     [webPreviewView loadFileURL:fileUrl allowingReadAccessToURL:rootUrl];
@@ -306,9 +247,8 @@
                 // Save image to path
                 NSData *tvImage = UIImageJPEGRepresentation(newImage, 0.80);
                 
-                NSString *path = [[self projectUserDirectoryPath] stringByAppendingPathComponent:@".atvImage_CN.jpg"];
-                [tvImage writeToFile:path atomically:YES];
-                
+                NSURL *url = [[self projectUserDirectoryURL] URLByAppendingPathComponent:@".atvImage_CN.jpg" isDirectory:NO];
+                [tvImage writeToURL:url atomically:YES];
                 
             };
             
@@ -360,11 +300,10 @@
 
 
 
-- (NSString *)fakePathForFile:(NSString *)selectedFile{
+- (NSString *)fakePathForFile:(NSURL *)selectedFile{
 
     if (!initWithProjectCreator) {
-        return [selectedFile stringByReplacingOccurrencesOfString:[NSString stringWithFormat:@"%@/",[self projectUserDirectoryPath]] withString:@""];
-
+        return [selectedFile.absoluteString stringByReplacingOccurrencesOfString:[[self projectUserDirectoryURL] absoluteString] withString:@""];
     }
     else{
         NSLog(@"[Polaris] ERROR: Wrong initializer.");
@@ -374,8 +313,7 @@
 
 - (NSString *)fakePathForFileSelectedFile{
     if (!initWithProjectCreator) {
-        
-        return [selectedFilePath stringByReplacingOccurrencesOfString:[NSString stringWithFormat:@"%@/",[self projectUserDirectoryPath]] withString:@""];
+        return [selectedFileURL.absoluteString stringByReplacingOccurrencesOfString:[[self projectUserDirectoryURL] absoluteString] withString:@""];
     }
     else{
         #ifdef DEBUG
@@ -388,11 +326,11 @@
 - (NSMutableArray *)contentsOfCurrentDirectory{
     if (!initWithProjectCreator) {
         
-        NSURL *url = [NSURL fileURLWithPath:inspectorPath isDirectory:YES];
+        NSURL *url = inspectorURL;
         NSMutableArray *items = [[[NSFileManager defaultManager] contentsOfDirectoryAtURL:url includingPropertiesForKeys:[NSArray arrayWithObject:NSURLNameKey] options:NSDirectoryEnumerationSkipsHiddenFiles error:nil] mutableCopy];
         
         return items;
-            
+        
     }
     else{
         #ifdef DEBUG
@@ -438,8 +376,7 @@
     if ([self checkIfBackupExists]) {
 
             
-        NSString *pathToDelete = [[self projectVersionsPath] stringByAppendingPathComponent:@"Autobackup"];
-        NSURL *url = [NSURL fileURLWithPath:pathToDelete isDirectory:YES];
+        NSURL *url = [[self projectVersionURL] URLByAppendingPathComponent:@"Autobackup" isDirectory:YES];
     
         NSError *error;
         [[NSFileManager alloc] removeItemAtURL:url error:&error];
@@ -454,11 +391,8 @@
 }
 
 - (BOOL)checkIfBackupExists{
-
-    NSString *backupPath = [[self projectVersionsPath] stringByAppendingPathComponent:@"Autobackup"];
-    
-    BOOL fileExists = [[NSFileManager defaultManager] fileExistsAtPath:backupPath];
-    return fileExists;
+    NSURL *backupURL = [[self projectVersionURL] URLByAppendingPathComponent:@"Autobackup" isDirectory:YES];
+    return [backupURL checkResourceIsReachableAndReturnError:nil];
 }
 
 
@@ -504,31 +438,29 @@
 
 #pragma mark - Paths
 
--(NSString *)projectPath{
-    return projectPath;
-
+-(NSURL *)projectURL {
+    return projectURL;
 }
 
 
-
-- (NSString *)projectUserDirectoryPath{
-    return [projectPath stringByAppendingPathComponent:@"Assets"];
+- (NSURL *)projectUserDirectoryURL {
+    return [projectURL URLByAppendingPathComponent:@"Assets" isDirectory:YES];
 }
 
-- (NSString *)projectVersionsPath{
-    return [projectPath stringByAppendingPathComponent:@"Versions"];
+- (NSURL *)projectVersionURL {
+    return [projectURL URLByAppendingPathComponent:@"Versions" isDirectory:YES];
 }
 
-- (NSString *)projectTempPath{
-    return [projectPath stringByAppendingPathComponent:@"Temp"];
+- (NSURL *)projectTempURL {
+    return [projectURL URLByAppendingPathComponent:@"Temp" isDirectory:YES];
 }
 
-- (NSString *)projectSettingsPath{
-    return [projectPath stringByAppendingPathComponent:@"Config"];
+- (NSURL *)projectSettingsURL {
+    return [projectURL URLByAppendingPathComponent:@"Config" isDirectory:YES];
 }
 
-- (NSString *)appleTVPreviewPath{
-    return [projectPath stringByAppendingPathComponent:@"ATV4"];
+- (NSURL *)appleTVPreviewURL {
+    return [projectURL URLByAppendingPathComponent:@"ATV4" isDirectory:YES];
 }
 
 #pragma mark - Values
@@ -678,9 +610,6 @@
         // display in 12HR/24HR (i.e. 11:25PM or 23:25) format according to User Settings
         [dateFormatter setTimeStyle:NSDateFormatterShortStyle];
         NSString *currentTime = [dateFormatter stringFromDate:today];
-        #ifdef DEBUG
-        NSLog(@"User's current time in their preference format:%@",currentTime);
-        #endif
         
         [self archiveWorkingCopyWithCommitMessge:currentTime andTitle:@"Autobackup"];
         
@@ -707,29 +636,24 @@
     
     if (!initWithProjectCreator) {
         
-        
-        if ([message isEqualToString:@"Enter commit message here"]) {
-            message = @"";
-        }
-        
         NSOperation *backgroundOperation = [[NSOperation alloc] init];
         backgroundOperation.queuePriority = NSOperationQueuePriorityLow;
         backgroundOperation.qualityOfService = NSOperationQualityOfServiceBackground;
         
         backgroundOperation.completionBlock = ^{
-        
             
-            NSString *destination;
+            
+            NSURL *destination;
             
             if (title.length == 0) {
                 NSString *version = [self privateProjectVersion];
                 int newVersion = version.intValue + 1;
                 [self updateVersionNumberToVersion:newVersion];
                 
-                destination = [NSString stringWithFormat:@"%@/Version%@",[self projectVersionsPath], version];
+                destination = [[self projectVersionURL] URLByAppendingPathComponent:[NSString stringWithFormat:@"Version%@", version] isDirectory:YES];
             }
             else{
-                destination = [[self projectVersionsPath] stringByAppendingPathComponent:title];
+                destination = [[self projectVersionURL] URLByAppendingPathComponent:title isDirectory:YES];
                 if ([self checkIfBackupExists]) {
                 
                     [self deleteBackup];
@@ -741,8 +665,9 @@
             NSError *error;
             NSFileManager *fm = [NSFileManager defaultManager];
             
-            if (self && destination && [self projectUserDirectoryPath]) {
-                [fm copyItemAtPath:[self projectUserDirectoryPath] toPath:destination error:&error];
+            if (destination && [self projectUserDirectoryURL]) {
+                
+                [fm copyItemAtURL:[self projectUserDirectoryURL] toURL:destination error:&error];
                 
                 if (error) {
 #ifdef DEBUG
@@ -752,11 +677,12 @@
                 else{
                     
                     NSError *error2;
-                    NSString *dataPath = [destination stringByAppendingPathComponent:@"data"];
+                    NSURL *dataURL = [destination URLByAppendingPathComponent:@"data" isDirectory:NO];
                     
                     if (message.length != 0) {
                         
-                        [message writeToFile:dataPath atomically:true encoding:NSUTF8StringEncoding error:&error2];
+                        //[message writeToFile:dataPath atomically:true encoding:NSUTF8StringEncoding error:&error2];
+                        [message writeToURL:dataURL atomically:YES encoding:NSUTF8StringEncoding error:&error2];
                         
                         if (error) {
 #ifdef DEBUG
@@ -816,7 +742,7 @@
 
 
 - (void)startServerForWeb:(BOOL)web forUploading:(BOOL)uploading forWebDav:(BOOL)webDav{
-    NSString *path = [self projectUserDirectoryPath];
+    NSString *path = [[self projectUserDirectoryURL] path];
 
     if (web) {
         
@@ -841,13 +767,13 @@
 
 
 - (void)saveDictionary:(NSDictionary *)dict{
-    [dict writeToFile:[self projectSettingsDictionaryPath] atomically:true];
+    [dict writeToURL:[self projectSettingsDictionaryURL] atomically:YES];
 }
 
 
 - (NSMutableDictionary *)getProjectSettingsDictionary{
     
-    NSString *settingsFilePath = [self projectSettingsDictionaryPath];
+    NSString *settingsFilePath = [[self projectSettingsDictionaryURL] path];
     
     BOOL fileExists = [[NSFileManager defaultManager] fileExistsAtPath:settingsFilePath];
     
@@ -864,8 +790,8 @@
 }
 
 
-- (NSString *)projectSettingsDictionaryPath{
-    return [[self projectSettingsPath] stringByAppendingPathComponent:@"settings.cnSettings"];
+- (NSURL *)projectSettingsDictionaryURL{
+    return [[self projectSettingsURL] URLByAppendingPathComponent:@"settings.cnSettings" isDirectory:NO];
 }
 
 

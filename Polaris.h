@@ -37,20 +37,6 @@
 
 
 /**
- * @brief The initializer for creating a new project.
- * @discussion This initializer is for creating a new project and setting up the required files in the related location.
- * @param path Path of the location where a project will be created.
- * @param name Desired name of the project
- * @param extension Extension of the project.
- * @warning Do not use this for initializing a project!
- * @code
- * Polaris *projectManager = [[Polaris alloc] initWithProjectCreatorAtPath:pathWhereProjWillBeCreated withName:projName andExtension:projExtension];
- * @endcode
- * @since 1.0
- */
-- (instancetype)initWithProjectCreatorAtPath:(NSString *)path withName:(NSString *)name andExtension:(NSString *)extension;
-
-/**
  * @brief The initializer for creating the required project files.
  * @discussion This initializer is for creating all required project files at an already existing location.
  * @param path Path of the directory where all reqired files will be injected.
@@ -61,10 +47,6 @@
  * @since 1.1
  */
 - (instancetype)initWithCreatingProjectRequiredFilesAtPath:(NSString *)path;
-
-
-
-- (instancetype)initWithProjectPath:(NSString *)path andWithWebServer:(BOOL)useWebServer UploadServer:(BOOL)useUploadServer andWebDavServer:(BOOL)useWebDavServer __deprecated_msg("use initWithProjectPath: currentView: instead.");
 
 
 
@@ -106,7 +88,7 @@
  * @endcode
  * @since 0.8
  */
-@property (nonatomic, strong) NSString *selectedFilePath;
+@property (nonatomic, strong) NSURL *selectedFileURL;
 
 /**
  * @brief The path of the file browser.
@@ -117,7 +99,7 @@
  * @endcode
  * @since 0.9
  */
-@property (nonatomic, strong) NSString *inspectorPath;
+@property (nonatomic, strong) NSURL *inspectorURL;
 
 /**
  * @brief The path of a file that might be deleted.
@@ -128,7 +110,7 @@
  * @endcode
  * @since 0.9
  */
-@property (nonatomic, strong) NSString *deletePath;
+@property (nonatomic, strong) NSURL *deleteURL;
 
 /**
  * @brief The path of an Archive.
@@ -138,13 +120,13 @@
  * @endcode
  * @since 1.0
  */
-@property (nonatomic, strong) NSString *archivePath;
+@property (nonatomic, strong) NSURL *archiveURL;
 
 
 /**
  * This specifies a variable that is used for memorizing a path temporary.
  */
-@property (nonatomic, strong) NSString *tmpFilePath;
+@property (nonatomic, strong) NSURL *tmpFileURL;
 
 
 #pragma mark - functions
@@ -175,7 +157,7 @@
  * @return Path with everything before the Asstes folder filtered out
  * @since 1.0
  */
-- (NSString *)fakePathForFile:(NSString *)selectedFile;
+- (NSString *)fakePathForFile:(NSURL *)selectedFile;
 
 /**
  * @brief Array of the files in the current directory
@@ -272,75 +254,72 @@
  * @brief The project path
  * @discussion This method returns the path of the initialized project.
  * @code
- * NSString *path = [projectManager projectPath];
+ * NSURL *url = [projectManager projectURL];
  * @endcode
  * @return Returns the project path
  * @since 0.4
  */
--(NSString *)projectPath;
+-(NSURL *)projectURL;
 
 /**
  * @brief The project documents path
  * @discussion This method returns the path of the directory where the user can save files
  * @warning Do not use this path so save settings or versioning related things.
  * @code
- * NSString *path = [projectManager projectUserDirectoryPath];
+ * NSURL *url = [projectManager projectUserDirectoryURL];
  * @endcode
  * @return Returns the project user directory path
  * @since 0.4
  */
-- (NSString *)projectUserDirectoryPath;
+- (NSURL *)projectUserDirectoryURL;
 
 /**
  * @brief The project versioning path
  * @discussion This method returns the path of the versioning directory.
  * @warning Do not use this path so save settings or user documents related things.
  * @code
- * NSString *path = [projectManager projectVersionsPath];
+ * NSURL *url = [projectManager projectVersionURL];
  * @endcode
  * @return Returns the project user directory path
  * @since 0.4
  */
-- (NSString *)projectVersionsPath;
-
+- (NSURL *)projectVersionURL;
 
 /**
  * @brief The project temp path
  * @discussion This method returns the path of the projects temp directory.
  * @warning Do not use this path so save user oriented things.
  * @code
- * NSString *path = [projectManager projectTempPath];
+ * NSURL *url = [projectManager projectTempURL];
  * @endcode
  * @return Returns the projects temp directory path
  * @since 1.1
  */
-- (NSString *)projectTempPath;
-
+- (NSURL *)projectTempURL;
 
 /**
  * @brief The project settings path
  * @discussion This method returns the path of the settings directory.
  * @warning Do not use this path so save settings or user documents related things.
  * @code
- * NSString *path = [projectManager projectVersionsPath];
+ * NSURL *url = [projectManager projectSettingsURL];
  * @endcode
  * @return Returns the project user directory path
  * @since 0.4
  */
-- (NSString *)projectSettingsPath;
-
+- (NSURL *)projectSettingsURL;
 
 /**
  * @brief The project Apple TV 4+ Preview file(s)
  * @discussion This method returns the path of the Apple TV 4+ data directory.
  * @warning Do not use this path so save settings or user documents related things nor other kind of files than PNGs.
  * @code
- * NSString *path = [projectManager appleTVPreviewPath];
+ * NSURL *url = [projectManager appleTVPreviewPath];
  * @endcode
  * @return Returns the Apple TV 4+ directory path
  * @since 1.4
  */
-- (NSString *)appleTVPreviewPath;
+- (NSURL *)appleTVPreviewURL;
 
 #pragma mark - Values
 /**
