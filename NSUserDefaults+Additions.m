@@ -36,55 +36,6 @@ NSString * const customFontKeyFontSize = @"CFACustomFontKeyFontSize";
 @implementation NSUserDefaults (Additions)
 
 
-
-#pragma mark Fonts
-
-
-- (UIFont *)fontForKey:(NSString *)fontKey{
-    
-    NSDictionary *fonts = [self dictionaryForKey:customFontsKey];
-    
-    UIFont *font = nil;
-    
-    if (fonts) {
-        NSDictionary *fontComponents = [fonts valueForKey:fontKey];
-        
-        NSString *fontName = [fontComponents valueForKey:customFontKeyFontName];
-        CGFloat size = [[fontComponents valueForKey:customFontKeyFontSize] floatValue];
-        
-        font = [UIFont fontWithName:fontName size:size];
-        
-    }
-    
-    
-    return font;
-}
-
-
-- (void)setFont:(UIFont *)font forKey:(NSString *)fontKey{
-    
-    NSMutableDictionary *fonts = [[self dictionaryForKey:customFontsKey] mutableCopy];
-    
-    if (!fonts) {
-        fonts = [[NSMutableDictionary alloc] initWithCapacity:1];
-    }
-    
-    NSDictionary *fontComponents = [[NSDictionary alloc] initWithObjectsAndKeys:
-                                    
-                                    font.fontName, customFontKeyFontName,
-                                    [NSNumber numberWithFloat:font.pointSize], customFontKeyFontSize,
-    nil];
-    
-    [fonts setValue:fontComponents forKey:fontKey];
-    
-    [self setObject:fonts forKey:customFontsKey];
-    
-    
-}
-
-
-
-
 #pragma mark - UIColor
 
 - (UIColor *)colorForKey:(NSString *)key{
@@ -116,20 +67,16 @@ NSString * const customFontKeyFontSize = @"CFACustomFontKeyFontSize";
 
 
 - (NSDictionary *)dicForKey:(NSString *)key{
-    
-    NSData *dictionaryData = [self objectForKey:key];
-    
+    NSUserDefaults *self_ = [NSUserDefaults standardUserDefaults];
+    NSData *dictionaryData = [self_ objectForKey:key];
     NSDictionary *dictionary = [NSKeyedUnarchiver unarchiveObjectWithData:dictionaryData];
-    
     return dictionary;
 }
 
 - (void)setDic:(NSDictionary *)dictionary ForKey:(NSString *)key{
-
-    NSData *colorData = [NSKeyedArchiver archivedDataWithRootObject:dictionary];
-    
-    [self setObject:colorData forKey:key];
-    
+    NSUserDefaults *self_ = [NSUserDefaults standardUserDefaults];
+    NSData *data = [NSKeyedArchiver archivedDataWithRootObject:dictionary];
+    [self_ setObject:data forKey:key];
 }
 
 

@@ -27,13 +27,14 @@
 @import WebKit;
 
 
-#import "Thumbnail.h"
 #import "UIColor+HexString.h"
 #import "NSUserDefaults+Additions.h"
 
 
-@interface Polaris : NSObject <WKNavigationDelegate>
+@interface Polaris : NSObject
 
+
+- (_Nonnull instancetype)initWithProjectPath:(NSString * _Nonnull)path;
 
 
 /**
@@ -46,7 +47,7 @@
  * @endcode
  * @since 1.1
  */
-- (instancetype)initWithCreatingProjectRequiredFilesAtPath:(NSString *)path;
+- (_Nonnull instancetype)initWithCreatingProjectRequiredFilesAtPath:(NSString * _Nonnull)path;
 
 
 
@@ -63,7 +64,7 @@
  * @endcode
  * @since 1.4
  */
-- (instancetype)initWithProjectPath:(NSString *)path currentView:(UIView *)view WithWebServer:(BOOL)useWebServer UploadServer:(BOOL)useUploadServer andWebDavServer:(BOOL)useWebDavServer;
+- (_Nonnull instancetype)initWithProjectPath:(NSString * _Nonnull)path withWebServer:(BOOL)useWebServer UploadServer:(BOOL)useUploadServer andWebDavServer:(BOOL)useWebDavServer;
 
 
 
@@ -88,7 +89,7 @@
  * @endcode
  * @since 0.8
  */
-@property (nonatomic, strong) NSURL *selectedFileURL;
+@property (nonatomic, strong) NSURL * _Nullable selectedFileURL;
 
 /**
  * @brief The path of the file browser.
@@ -99,7 +100,7 @@
  * @endcode
  * @since 0.9
  */
-@property (nonatomic, strong) NSURL *inspectorURL;
+@property (nonatomic, strong) NSURL * _Nonnull inspectorURL;
 
 /**
  * @brief The path of a file that might be deleted.
@@ -110,7 +111,7 @@
  * @endcode
  * @since 0.9
  */
-@property (nonatomic, strong) NSURL *deleteURL;
+@property (nonatomic, strong) NSURL * _Nullable deleteURL;
 
 /**
  * @brief The path of an Archive.
@@ -120,13 +121,13 @@
  * @endcode
  * @since 1.0
  */
-@property (nonatomic, strong) NSURL *archiveURL;
+@property (nonatomic, strong) NSURL * _Nonnull archiveURL;
 
 
 /**
  * This specifies a variable that is used for memorizing a path temporary.
  */
-@property (nonatomic, strong) NSURL *tmpFileURL;
+@property (nonatomic, strong) NSURL * _Nullable tmpFileURL;
 
 
 #pragma mark - functions
@@ -145,7 +146,7 @@
  * @return The path of the selected file with everything before the Asstes folder filtered out
  * @since 1.0
  */
-- (NSString *)fakePathForFileSelectedFile;
+- (NSString * _Nonnull)fakePathForFileSelectedFile;
 
 /**
  * @brief Path with everything removed before the Assets folder 
@@ -157,7 +158,7 @@
  * @return Path with everything before the Asstes folder filtered out
  * @since 1.0
  */
-- (NSString *)fakePathForFile:(NSURL *)selectedFile;
+- (NSString * _Nonnull)fakePathForFile:(NSURL * _Nonnull)selectedFile;
 
 /**
  * @brief Array of the files in the current directory
@@ -168,7 +169,7 @@
  * @return An mutable array of NSString objects, each of which identifies a file, directory, or symbolic link contained in path. Returns an empty array if the directory exists but has no contents. If an error occurs, this method returns nil and assigns an appropriate error object to the error parameter
  * @since 1.0
  */
-- (NSMutableArray *)contentsOfCurrentDirectory;
+- (NSMutableArray * _Nonnull)contentsOfCurrentDirectory;
 
 /**
  * @brief Array of the files in the current directory
@@ -180,7 +181,7 @@
  * @return An mutable array of NSString objects, each of which identifies a file, directory, or symbolic link contained in path. Returns an empty array if the directory exists but has no contents. If an error occurs, this method returns nil and assigns an appropriate error object to the error parameter
  * @sice 1.0
  */
-- (NSMutableArray *)contentsOfDirectoryAtPath:(NSString *)path;
+- (NSMutableArray * _Nonnull)contentsOfDirectoryAtPath:(NSString * _Nonnull)path;
 
 /**
  * @brief Saves the current project state
@@ -191,7 +192,7 @@
  * @endcode
  * @sice 1.0
  */
-- (void)archiveWorkingCopyWithCommitMessge:(NSString *)message;
+- (void)archiveWorkingCopyWithCommitMessge:(NSString * _Nonnull)message;
 
 
 /**
@@ -200,6 +201,7 @@
  * @since 1.2
  */
 - (void)deleteBackup;
+
 
 /**
  * Returns YES if a backup exists.
@@ -223,7 +225,7 @@
  * @return Returns the IP + Port
  * @since 1.0
  */
-- (NSString *)webServerURL;
+- (NSString * _Nullable)webServerURL;
 
 /**
  * @brief The URL for the web uploading server
@@ -234,7 +236,7 @@
  * @return Returns the IP + Port
  * @since 1.0
  */
-- (NSString *)webUploaderServerURL;
+- (NSString * _Nullable)webUploaderServerURL;
 
 /**
  * @brief The URL for the webDav server
@@ -245,7 +247,7 @@
  * @return Returns the IP + Port
  * @since 1.0
  */
-- (NSString *)webDavServerURL;
+- (NSString * _Nullable)webDavServerURL;
 
 
 #pragma mark - Paths
@@ -259,7 +261,7 @@
  * @return Returns the project path
  * @since 0.4
  */
--(NSURL *)projectURL;
+-(NSURL * _Nonnull)projectURL;
 
 /**
  * @brief The project documents path
@@ -271,7 +273,7 @@
  * @return Returns the project user directory path
  * @since 0.4
  */
-- (NSURL *)projectUserDirectoryURL;
+- (NSURL * _Nonnull)projectUserDirectoryURL;
 
 /**
  * @brief The project versioning path
@@ -283,7 +285,7 @@
  * @return Returns the project user directory path
  * @since 0.4
  */
-- (NSURL *)projectVersionURL;
+- (NSURL * _Nonnull)projectVersionURL;
 
 /**
  * @brief The project temp path
@@ -295,7 +297,7 @@
  * @return Returns the projects temp directory path
  * @since 1.1
  */
-- (NSURL *)projectTempURL;
+- (NSURL * _Nonnull)projectTempURL;
 
 /**
  * @brief The project settings path
@@ -307,7 +309,7 @@
  * @return Returns the project user directory path
  * @since 0.4
  */
-- (NSURL *)projectSettingsURL;
+- (NSURL * _Nonnull)projectSettingsURL;
 
 /**
  * @brief The project Apple TV 4+ Preview file(s)
@@ -319,7 +321,7 @@
  * @return Returns the Apple TV 4+ directory path
  * @since 1.4
  */
-- (NSURL *)appleTVPreviewURL;
+- (NSURL * _Nonnull)appleTVPreviewURL;
 
 #pragma mark - Values
 /**
@@ -332,7 +334,7 @@
  * @return Returns the projects current version.
  * @since 0.4
  */
-- (NSString *)projectCurrentVersion;
+- (NSString * _Nullable)projectCurrentVersion;
 
 /**
  * @brief The project copyright holder version
@@ -344,7 +346,7 @@
  * @return Returns the projects copyright holder.
  * @since 0.5
  */
-- (NSString *)projectCopyright;
+- (NSString * _Nullable)projectCopyright;
 
 /**
  * @brief The project version
@@ -356,7 +358,7 @@
  * @return Returns the projects gistID.
  * @since 0.5
  */
-- (NSString *)projectGistID;
+- (NSString * _Nullable)projectGistID;
 
 #pragma mark - Settings
 
@@ -369,7 +371,7 @@
  * @endcode
  * @sice 1.0
  */
-- (void)updateGistID:(NSString*)gistID;
+- (void)updateGistID:(NSString* _Nonnull)gistID;
 
 /**
  * @brief Updates the version number
@@ -393,7 +395,7 @@
  * @endcode
  * @sice 0.8
  */
-- (void)updateSettingsValueForKey:(NSString *)key withValue:(id)anObject;
+- (void)updateSettingsValueForKey:(NSString * _Nonnull)key withValue:(id _Nullable)anObject;
 
 /**
  * @brief Saves a value for a new key.
@@ -406,7 +408,7 @@
  * @endcode
  * @sice 0.8
  */
-- (void)saveValue:(NSString *)value forKey:(NSString *)key;
+- (void)saveValue:(NSString * _Nonnull)value forKey:(NSString * _Nonnull)key;
 
 /**
  * @brief Returns a saved value.
@@ -418,7 +420,7 @@
  * @return An saved object associated to the specific key
  * @sice 0.9
  */
-- (id)getSettingsDataForKey:(NSString *)key;
+- (id _Nullable)getSettingsDataForKey:(NSString * _Nonnull)key;
 
 
 @end

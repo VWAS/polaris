@@ -38,7 +38,6 @@
 #import "RNEncryptor.h"
 #import "RNDecryptor.h"
 
-#define IS_RETINA ([[UIScreen mainScreen] respondsToSelector:@selector(displayLinkWithTarget:selector:)] && ([UIScreen mainScreen].scale >= 2.0))
 
 @interface Polaris () {
     
@@ -118,10 +117,21 @@
     return self;
 }
 
+- (instancetype)initWithProjectPath:(NSString *)path {
+    self = [super init];
+
+    if (self) {
+        projectURL = [[NSURL alloc] initFileURLWithPath:path isDirectory:true];
+        inspectorURL = [self projectUserDirectoryURL];
+    }
+    
+    return self;
+}
 
 
 
-- (instancetype)initWithProjectPath:(NSString *)path currentView:(UIView *)view WithWebServer:(BOOL)useWebServer UploadServer:(BOOL)useUploadServer andWebDavServer:(BOOL)useWebDavServer{
+
+- (instancetype)initWithProjectPath:(NSString *)path withWebServer:(BOOL)useWebServer UploadServer:(BOOL)useUploadServer andWebDavServer:(BOOL)useWebDavServer{
     self = [super init];
       
     
@@ -132,31 +142,6 @@
         
         if (useWebServer || useUploadServer || useWebDavServer) {
             [self startServerForWeb:useWebServer forUploading:useUploadServer forWebDav:useWebDavServer];
-            
-            
-            //tvOS thing
-            WKWebViewConfiguration *webViewConfiguration = [[WKWebViewConfiguration alloc] init];
-            webViewConfiguration.allowsInlineMediaPlayback = NO;
-            webViewConfiguration.allowsAirPlayForMediaPlayback = NO;
-            webViewConfiguration.requiresUserActionForMediaPlayback = YES;
-            webViewConfiguration.applicationNameForUserAgent = @"Codinator";
-            webViewConfiguration.allowsPictureInPictureMediaPlayback = NO;
-            
-            
-            CGRect frame;
-            
-            if (IS_RETINA) {
-                frame = CGRectMake(view.frame.size.width+1000, 0, 960, 540);
-            }
-            else{
-                frame = CGRectMake(view.frame.size.width+1000, 0, 1920, 1080);
-            }
-            
-            
-            webPreviewView = [[WKWebView alloc]initWithFrame:frame configuration:webViewConfiguration];
-            webPreviewView.navigationDelegate = self;
-            [view insertSubview:webPreviewView atIndex:0];
-            
         }
         
         [self autoBackup];
@@ -213,150 +198,29 @@
 }
 
 
-- (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation{
-    
-    dispatch_semaphore_t semaphore = dispatch_semaphore_create(1);
-    dispatch_queue_t renderQueue = dispatch_queue_create("com.throttling.queue", NULL);
-    
-    
-    if (dispatch_semaphore_wait(semaphore, DISPATCH_TIME_NOW) == 0) {
-        dispatch_async(renderQueue, ^{
-            // capture
-            
-            
-            
-            NSOperation *backgroundOperation = [[NSOperation alloc] init];
-            backgroundOperation.queuePriority = NSOperationQueuePriorityLow;
-            backgroundOperation.qualityOfService = NSOperationQualityOfServiceBackground;
-            
-            backgroundOperation.completionBlock = ^{
-                
-                
-                // Capture
-                
-                UIGraphicsBeginImageContextWithOptions(CGSizeMake(webPreviewView.frame.size.width, webPreviewView.frame.size.height),
-                                                       YES, 0.0);
-                [webPreviewView drawViewHierarchyInRect:webPreviewView.bounds afterScreenUpdates:NO];
-                
-                
-                
-                UIImage* newImage = UIGraphicsGetImageFromCurrentImageContext();
-                UIGraphicsEndImageContext();
-                
-                
-                // Save image to path
-                NSData *tvImage = UIImageJPEGRepresentation(newImage, 0.80);
-                
-                NSURL *url = [[self projectUserDirectoryURL] URLByAppendingPathComponent:@".atvImage_CN.jpg" isDirectory:NO];
-                [tvImage writeToURL:url atomically:YES];
-                
-            };
-            
-            
-            [[NSOperationQueue mainQueue] addOperation:backgroundOperation];
-            
-            
-            
-            
-            
-            
-            dispatch_semaphore_signal(semaphore);
-        });
-    }
-
-    
-}
-
-
-
-- (UIImage *)captureScreen:(WKWebView *) viewToCapture{
-   
-    // Create a new view with Full HD dimensions
-    WKWebView *tmpView = viewToCapture;
-    
-    CGRect frame = tmpView.frame;
-    
-    if (IS_RETINA) {
-        frame.size.height = 540;
-        frame.size.width = 960;
-    }
-    else{
-        frame.size.height = 1080;
-        frame.size.width = 1920;
-    }
-    
-    tmpView.frame = frame;
-    
-    UIGraphicsBeginImageContextWithOptions(CGSizeMake(1920, 1080),
-                                           YES, 0.0);
-    [tmpView drawViewHierarchyInRect:tmpView.bounds afterScreenUpdates:YES];
-    UIImage* newImage = UIGraphicsGetImageFromCurrentImageContext();
-    UIGraphicsEndImageContext();
-    return newImage;
-}
-
-
-
-
-
 
 - (NSString *)fakePathForFile:(NSURL *)selectedFile{
-
-    if (!initWithProjectCreator) {
-        return [selectedFile.absoluteString stringByReplacingOccurrencesOfString:[[self projectUserDirectoryURL] absoluteString] withString:@""];
-    }
-    else{
-        NSLog(@"[Polaris] ERROR: Wrong initializer.");
-        return nil;
-    }
+    return [selectedFile.absoluteString stringByReplacingOccurrencesOfString:[[self projectUserDirectoryURL] absoluteString] withString:@""];
 }
 
 - (NSString *)fakePathForFileSelectedFile{
-    if (!initWithProjectCreator) {
-        return [selectedFileURL.absoluteString stringByReplacingOccurrencesOfString:[[self projectUserDirectoryURL] absoluteString] withString:@""];
-    }
-    else{
-        #ifdef DEBUG
-        NSLog(@"[Polaris] ERROR: Wrong initializer.");
-        #endif
-        return nil;
-    }
+    return [selectedFileURL.absoluteString stringByReplacingOccurrencesOfString:[[self projectUserDirectoryURL] absoluteString] withString:@""];
 }
 
 - (NSMutableArray *)contentsOfCurrentDirectory{
-    if (!initWithProjectCreator) {
-        
-        NSURL *url = inspectorURL;
-        NSMutableArray *items = [[[NSFileManager defaultManager] contentsOfDirectoryAtURL:url includingPropertiesForKeys:[NSArray arrayWithObject:NSURLNameKey] options:NSDirectoryEnumerationSkipsHiddenFiles error:nil] mutableCopy];
-        
-        return items;
-        
-    }
-    else{
-        #ifdef DEBUG
-        NSLog(@"[Polaris] ERROR: Wrong initializer.");
-        #endif
-        return nil;
-    }
+    NSURL *url = inspectorURL;
+    NSMutableArray *items = [[[NSFileManager defaultManager] contentsOfDirectoryAtURL:url includingPropertiesForKeys:[NSArray arrayWithObject:NSURLNameKey] options:NSDirectoryEnumerationSkipsHiddenFiles error:nil] mutableCopy];
+    
+    return items;
 }
 
 
 - (NSMutableArray *)contentsOfDirectoryAtPath:(NSString *)path{
-    if (!initWithProjectCreator) {
-        
-        NSURL *url = [NSURL fileURLWithPath:path isDirectory:YES];
-        NSMutableArray *items = [[[NSFileManager defaultManager] contentsOfDirectoryAtURL:url includingPropertiesForKeys:[NSArray arrayWithObject:NSURLNameKey] options:NSDirectoryEnumerationSkipsHiddenFiles error:nil] mutableCopy];
-
-        
-    return items;
+    NSURL *url = [NSURL fileURLWithPath:path isDirectory:YES];
+    NSMutableArray *items = [[[NSFileManager defaultManager] contentsOfDirectoryAtURL:url includingPropertiesForKeys:[NSArray arrayWithObject:NSURLNameKey] options:NSDirectoryEnumerationSkipsHiddenFiles error:nil] mutableCopy];
     
-    }
-    else{
-        #ifdef DEBUG
-        NSLog(@"[Polaris] ERROR: Wrong initializer.");
-        #endif
-        return nil;
-    }
+    
+    return items;
 }
 
 
@@ -374,21 +238,48 @@
 - (void)deleteBackup{
     
     if ([self checkIfBackupExists]) {
-
-            
-        NSURL *url = [[self projectVersionURL] URLByAppendingPathComponent:@"Autobackup" isDirectory:YES];
     
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
+        
+        NSURL *url = [[self projectVersionURL] URLByAppendingPathComponent:@"Autobackup" isDirectory:YES];
+        
         NSError *error;
         [[NSFileManager alloc] removeItemAtURL:url error:&error];
-    
+        
         if (error) {
             #ifdef DEBUG
             NSLog(@"[Polaris] Error deleting backup");
             #endif
         }
+
+        
+    });
     
     }
+    
 }
+
+
+- (void)deleteBackupSync {
+    if ([self checkIfBackupExists]) {
+        
+        
+        NSURL *url = [[self projectVersionURL] URLByAppendingPathComponent:@"Autobackup" isDirectory:YES];
+        
+        NSError *error;
+        [[NSFileManager alloc] removeItemAtURL:url error:&error];
+        
+        if (error) {
+#ifdef DEBUG
+            NSLog(@"[Polaris] Error deleting backup");
+#endif
+        }
+        
+        
+        
+    }
+}
+
 
 - (BOOL)checkIfBackupExists{
     NSURL *backupURL = [[self projectVersionURL] URLByAppendingPathComponent:@"Autobackup" isDirectory:YES];
@@ -556,8 +447,13 @@
 
 - (void)updateSettingsValueForKey:(NSString *)key withValue:(id)anObject{
     NSDictionary *dict = [self getProjectSettingsDictionary];
-    [dict setValue:[self encryptData:anObject forKey:key] forKey:key];
-    
+
+    if ([self isModern]) {
+        [dict setValue:anObject forKey:key];
+    } else {
+        [dict setValue:[self encryptData:anObject forKey:key] forKey:key];
+    }
+
     [self saveDictionary:dict];
     
     
@@ -565,7 +461,16 @@
 
 - (void)saveValue:(id)anObject forKey:(NSString *)key{
     NSMutableDictionary *dict = [self getProjectSettingsDictionary];
-    [dict setValue:[self encryptData:anObject forKey:key] forKey:key];
+
+
+    if ([key isEqualToString:@"modern"] || [self isModern]) {
+        [dict setValue:anObject forKey:key];
+    }
+    else {
+        [dict setValue:[self encryptData:anObject forKey:key] forKey:key];
+    }
+
+
     [self saveDictionary:dict];
 }
 
@@ -573,9 +478,17 @@
 
 
 - (NSString *)getSettingsDataForKey:(NSString *)key{
-    
     NSDictionary *dict = [self getProjectSettingsDictionary];
-    NSString *string = [self decryptedData:[dict valueForKey:key] forKey:key];
+
+
+    NSString *string;
+
+    if ([self isModern]) {
+        string = [dict valueForKey:key];
+    }
+    else {
+        string = [self decryptedData:[dict valueForKey:key] forKey:key];
+    }
     
     #ifdef DEBUG
     if (!string) {
@@ -588,9 +501,14 @@
 
 
 
+
+
 #pragma mark - Private Methods
 
-
+- (BOOL)isModern {
+    NSMutableDictionary *dict = [self getProjectSettingsDictionary];
+    return [[dict valueForKey:@"modern"] isEqualToString:@"YES"];
+}
 
 - (void)autoBackup{
     
@@ -656,7 +574,7 @@
                 destination = [[self projectVersionURL] URLByAppendingPathComponent:title isDirectory:YES];
                 if ([self checkIfBackupExists]) {
                 
-                    [self deleteBackup];
+                    [self deleteBackupSync];
                     
                 }
             }
@@ -742,26 +660,26 @@
 
 
 - (void)startServerForWeb:(BOOL)web forUploading:(BOOL)uploading forWebDav:(BOOL)webDav{
-    NSString *path = [[self projectUserDirectoryURL] path];
-
-    if (web) {
-        
-        _webServer = [[GCDWebServer alloc] init];
-        [_webServer addGETHandlerForBasePath:@"/" directoryPath:path indexFilename:@"index.html" cacheAge:3600 allowRangeRequests:YES];
-        [_webServer startWithPort:8080 bonjourName:nil];
-
-    }
-    
-    if (uploading) {
-        
-        _webUploader = [[GCDWebUploader alloc] initWithUploadDirectory:path];
-        [_webUploader startWithPort:80 bonjourName:nil];
-    }
-    
-    if (webDav) {
-        _davServer = [[GCDWebDAVServer alloc] initWithUploadDirectory:path];
-        [_davServer startWithPort:443 bonjourName:nil];
-    }
+//    NSString *path = [[self projectUserDirectoryURL] path];
+//
+//    if (web) {
+//        
+//        _webServer = [[GCDWebServer alloc] init];
+//        [_webServer addGETHandlerForBasePath:@"/" directoryPath:path indexFilename:@"index.html" cacheAge:3600 allowRangeRequests:YES];
+//        [_webServer startWithPort:0 bonjourName:nil];
+//
+//    }
+//    
+//    if (uploading) {
+//        
+//        _webUploader = [[GCDWebUploader alloc] initWithUploadDirectory:path];
+//        [_webUploader startWithPort:0 bonjourName:nil];
+//    }
+//    
+//    if (webDav) {
+//        _davServer = [[GCDWebDAVServer alloc] initWithUploadDirectory:path];
+//        [_davServer startWithPort:0 bonjourName:nil];
+//    }
 
 }
 

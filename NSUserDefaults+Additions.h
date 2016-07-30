@@ -30,25 +30,16 @@
 
 
 
-#pragma mark - Fonts
-
-- (UIFont *)fontForKey:(NSString *)fontKey;
-
-- (void)setFont:(UIFont *)font forKey:(NSString *)fontKey;
-
-
 
 #pragma mark - UIColor
 
 - (UIColor *)colorForKey:(NSString *)key;
-
 - (void)setColor:(UIColor *)color ForKey:(NSString *)key;
 
 
 #pragma mark - Dictionarys
 
 - (NSDictionary *)dicForKey:(NSString *)key;
-
 - (void)setDic:(NSDictionary *)dictionary ForKey:(NSString *)key;
 
 

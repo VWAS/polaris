@@ -193,7 +193,7 @@
 .list-group-item.active:hover,
 .list-group-item.active:focus {
   background-repeat: repeat-x;
-  border-color: #3278b3;
+  border-color: red;
 }
 .panel {
 }
